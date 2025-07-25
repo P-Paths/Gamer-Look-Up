@@ -2,7 +2,7 @@
 
 ## Overview
 
-This is a full-stack web application that allows users to look up Steam gaming profiles by gamer tag or Steam ID. The application provides detailed statistics about players including their games, playtime, and profile information. Built with a modern React frontend and Express.js backend, it integrates with the Steam Web API to fetch real-time gaming data.
+This is a full-stack multi-platform gaming lookup web application that allows users to look up gaming profiles across Steam, PlayStation, and Xbox platforms by gamer tag. The application provides detailed statistics about players including their games, playtime, and profile information. Built with a modern React frontend and Express.js backend, it integrates with multiple gaming platform APIs to fetch real gaming data.
 
 ## User Preferences
 
@@ -119,6 +119,8 @@ Preferred communication style: Simple, everyday language.
 ### Environment Variables Required
 - `DATABASE_URL`: PostgreSQL connection string
 - `STEAM_API_KEY` or `STEAM_WEB_API_KEY`: Steam Web API authentication
+- `PSN_NPSSO_TOKEN`: PlayStation Network authentication token
+- `XBOXAPI_KEY`: Xbox Live API key from XboxAPI.com
 - `NODE_ENV`: Environment specification (development/production)
 
 ### Replit Optimizations
