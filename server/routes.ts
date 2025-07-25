@@ -63,6 +63,138 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Add PlayStation Real Data endpoint
+  app.post('/api/platform/psn-real', async (req, res) => {
+    try {
+      const { npsso, gamerTag } = req.body;
+      
+      if (!npsso) {
+        return res.status(400).json({ 
+          success: false, 
+          error: 'NPSSO token is required' 
+        });
+      }
+
+      console.log(`Real PlayStation lookup for: ${gamerTag || 'current user'}`);
+      
+      // Import the new PSN modules
+      const { getCompletePSNData } = await import('./psn/index');
+      
+      const psnData = await getCompletePSNData(npsso);
+      
+      if (psnData.success) {
+        // Convert to our standard platform response format
+        const response = {
+          platform: "playstation" as const,
+          player: {
+            id: psnData.profile.accountId,
+            gamerTag: psnData.profile.onlineId,
+            displayName: psnData.profile.onlineId,
+            avatar: psnData.profile.avatar,
+            lastOnline: "Recently active",
+          },
+          totalHours: psnData.gaming.totalHours,
+          totalGames: psnData.gaming.totalGames,
+          avgHoursPerGame: psnData.gaming.totalGames > 0 ? 
+            Math.round((psnData.gaming.totalHours / psnData.gaming.totalGames) * 10) / 10 : 0,
+          topGames: psnData.gaming.topGames.map(game => ({
+            id: `psn_${game.name.replace(/[^a-zA-Z0-9]/g, '_').toLowerCase()}`,
+            name: game.name,
+            hoursPlayed: game.hours,
+            platform: "playstation" as const,
+            lastPlayed: game.lastPlayed,
+          })),
+          qualificationStatus: psnData.gaming.totalHours > 1100 ? "qualified" : "not_qualified",
+          qualificationReason: `Real PlayStation data: ${psnData.gaming.totalHours} hours, Level ${psnData.trophies.level}`,
+          realData: true,
+          trophies: psnData.trophies
+        };
+
+        // Cache the real data
+        await storage.setCachedPlatformLookup("playstation", psnData.profile.accountId, response);
+        
+        res.json(response);
+      } else {
+        res.status(400).json({
+          success: false,
+          error: psnData.error || 'Failed to fetch PlayStation data'
+        });
+      }
+      
+    } catch (error) {
+      console.error('Real PSN lookup error:', error);
+      res.status(500).json({ 
+        success: false, 
+        error: error instanceof Error ? error.message : 'PlayStation lookup failed' 
+      });
+    }
+  });
+
+  // Add PlayStation scraping fallback endpoint
+  app.post('/api/platform/psn-scrape', async (req, res) => {
+    try {
+      const { npsso } = req.body;
+      
+      if (!npsso) {
+        return res.status(400).json({ 
+          success: false, 
+          error: 'NPSSO token is required' 
+        });
+      }
+
+      console.log('PlayStation web scraping fallback...');
+      
+      const { scrapePSNDashboard } = await import('./psn/scraper');
+      
+      const scrapeResult = await scrapePSNDashboard(npsso);
+      
+      if (scrapeResult.success && scrapeResult.profile) {
+        const profile = scrapeResult.profile;
+        
+        const response = {
+          platform: "playstation" as const,
+          player: {
+            id: `psn_${profile.username.toLowerCase()}`,
+            gamerTag: profile.username,
+            displayName: profile.username,
+            avatar: profile.avatar || "https://via.placeholder.com/64x64/0070f3/ffffff?text=PSN",
+            lastOnline: "Recently active",
+          },
+          totalHours: profile.totalHours,
+          totalGames: profile.totalGames,
+          avgHoursPerGame: profile.totalGames > 0 ? 
+            Math.round((profile.totalHours / profile.totalGames) * 10) / 10 : 0,
+          topGames: profile.games.slice(0, 5).map(game => ({
+            id: `psn_${game.name.replace(/[^a-zA-Z0-9]/g, '_').toLowerCase()}`,
+            name: game.name,
+            hoursPlayed: game.hours || 0,
+            platform: "playstation" as const,
+            lastPlayed: new Date().toISOString(),
+          })),
+          qualificationStatus: profile.totalHours > 1100 ? "qualified" : "not_qualified",
+          qualificationReason: `Scraped PlayStation data: ${profile.totalHours} hours from ${profile.totalGames} games`,
+          scrapedData: true
+        };
+
+        await storage.setCachedPlatformLookup("playstation", response.player.id, response);
+        
+        res.json(response);
+      } else {
+        res.status(400).json({
+          success: false,
+          error: scrapeResult.error || 'PlayStation scraping failed'
+        });
+      }
+      
+    } catch (error) {
+      console.error('PSN scraping error:', error);
+      res.status(500).json({ 
+        success: false, 
+        error: error instanceof Error ? error.message : 'PlayStation scraping failed' 
+      });
+    }
+  });
+
   // Steam lookup endpoint
   app.post("/api/steam/lookup", async (req, res) => {
     try {

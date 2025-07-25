@@ -4,6 +4,27 @@
 
 This is a full-stack multi-platform gaming lookup web application that allows users to look up gaming profiles across Steam, PlayStation, and Xbox platforms by gamer tag. The application provides detailed statistics about players including their games, playtime, and profile information. Built with a modern React frontend and Express.js backend, it integrates with multiple gaming platform APIs to fetch real gaming data.
 
+## Recent Updates (July 2025)
+
+**✅ Complete PlayStation Real Data Integration:**
+- Built comprehensive Puppeteer-based PlayStation service with 8 TypeScript modules
+- NPSSO token authentication system for real PlayStation API access  
+- Real trophy data, games library, and profile information retrieval
+- Web scraping fallback when API calls fail
+- New endpoints: `/api/platform/psn-real` and `/api/platform/psn-scrape`
+- Test interface at `/psn-test` for NPSSO token validation
+- Command-line test script: `node test-psn.js "NPSSO_TOKEN"`
+
+**PlayStation Service Architecture:**
+- `server/psn/getNpSSO.ts` - Puppeteer NPSSO extraction
+- `server/psn/auth.ts` - NPSSO → access token exchange  
+- `server/psn/fetchProfile.ts` - Profile and user data
+- `server/psn/fetchGames.ts` - Games library with estimated hours
+- `server/psn/fetchTrophies.ts` - Trophy statistics and levels
+- `server/psn/scraper.ts` - Web scraping fallback system
+- `server/psn/index.ts` - Main orchestration module
+- `server/psn/demo.ts` - Complete testing framework
+
 ## User Preferences
 
 Preferred communication style: Simple, everyday language.
