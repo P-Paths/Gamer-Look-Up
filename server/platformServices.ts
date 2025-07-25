@@ -186,63 +186,69 @@ export class PlayStationService implements PlatformService {
   }
 
   async lookupPlayer(gamerTag: string, accessToken?: string): Promise<PlatformLookupResponse> {
-    console.log(`PlayStation lookup for: ${gamerTag}`);
+    console.log(`Real PlayStation lookup for: ${gamerTag || 'current user'}`);
+    
+    // Get NPSSO token from environment
+    const npsso = process.env.PSN_NPSSO_TOKEN;
+    if (!npsso) {
+      throw new Error('PSN_NPSSO_TOKEN environment variable is required for PlayStation lookups');
+    }
     
     // Check cache first
-    const cached = await storage.getCachedPlatformLookup("playstation", `psn_${gamerTag.toLowerCase()}`);
+    const cacheKey = gamerTag ? `psn_${gamerTag.toLowerCase()}` : 'psn_current_user';
+    const cached = await storage.getCachedPlatformLookup("playstation", cacheKey);
     if (cached) {
-      console.log(`PlayStation cache hit for: ${gamerTag}`);
+      console.log(`PlayStation cache hit for: ${gamerTag || 'current user'}`);
       return cached;
     }
 
-    // Generate unique gaming data per gamer tag
-    const tagHash = gamerTag.split('').reduce((hash, char) => hash + char.charCodeAt(0), 0);
-    const seededRandom = (seed: number, min: number, max: number) => {
-      const x = Math.sin(seed++) * 10000;
-      return Math.floor((x - Math.floor(x)) * (max - min + 1)) + min;
-    };
+    try {
+      // Import the real PSN integration
+      const { getCompletePSNData } = await import('./psn/index');
+      
+      const psnData = await getCompletePSNData(npsso);
+      
+      if (psnData.success) {
+        // Convert to our standard platform response format
+        const response: PlatformLookupResponse = {
+          platform: "playstation",
+          player: {
+            id: psnData.profile.accountId,
+            gamerTag: psnData.profile.onlineId,
+            displayName: psnData.profile.onlineId,
+            avatar: psnData.profile.avatar,
+            lastOnline: "Recently active",
+          },
+          totalHours: psnData.gaming.totalHours,
+          totalGames: psnData.gaming.totalGames,
+          avgHoursPerGame: psnData.gaming.totalGames > 0 ? 
+            Math.round((psnData.gaming.totalHours / psnData.gaming.totalGames) * 10) / 10 : 0,
+          topGames: psnData.gaming.topGames.map(game => ({
+            id: `psn_${game.name.replace(/[^a-zA-Z0-9]/g, '_').toLowerCase()}`,
+            name: game.name,
+            hoursPlayed: game.hours,
+            platform: "playstation" as Platform,
+            lastPlayed: game.lastPlayed,
+          })),
+          qualificationStatus: psnData.gaming.totalHours > 1100 ? "qualified" : "not_qualified",
+          qualificationReason: `Real PlayStation data: ${psnData.gaming.totalHours} hours, Level ${psnData.trophies.level}`,
+          realData: true,
+          trophies: psnData.trophies
+        };
 
-    const gameTemplates = [
-      "Call of Duty: Modern Warfare III", "FIFA 24", "Spider-Man 2", "Fortnite", 
-      "Grand Theft Auto V", "Apex Legends", "Destiny 2", "The Last of Us Part II",
-      "God of War Ragnarök", "Horizon Forbidden West", "Resident Evil 4", "NBA 2K24"
-    ];
-    
-    const topGames = gameTemplates.slice(0, 3).map((game, index) => {
-      const gameHours = seededRandom(tagHash + index * 100, 15, 300);
-      return {
-        id: `psn_${game.replace(/[^a-zA-Z0-9]/g, '_').toLowerCase()}_${gamerTag}`,
-        name: game,
-        hoursPlayed: gameHours,
-        platform: "playstation" as Platform,
-        lastPlayed: new Date(Date.now() - seededRandom(tagHash + index, 1, 30) * 24 * 60 * 60 * 1000).toISOString(),
-      };
-    });
-    
-    const totalGames = seededRandom(tagHash, 8, 25);
-    const totalHours = topGames.reduce((sum, game) => sum + game.hoursPlayed, 0) + seededRandom(tagHash, 100, 500);
-    const avgHoursPerGame = totalGames > 0 ? Math.round((totalHours / totalGames) * 10) / 10 : 0;
-
-    const response: PlatformLookupResponse = {
-      platform: "playstation",
-      player: {
-        id: `psn_${gamerTag.toLowerCase()}`,
-        gamerTag: gamerTag,
-        displayName: gamerTag,
-        avatar: "https://via.placeholder.com/64x64/0070f3/ffffff?text=PSN",
-        lastOnline: "Recently active",
-      },
-      totalHours: Math.round(totalHours),
-      totalGames,
-      avgHoursPerGame,
-      topGames,
-      qualificationStatus: totalHours > 1100 ? "qualified" : "not_qualified",
-      qualificationReason: `Gaming data for ${gamerTag} (${Math.round(totalHours)} hours from ${totalGames} games)`,
-    };
-
-    await storage.setCachedPlatformLookup("playstation", response.player.id, response);
-    console.log(`PlayStation data generated for ${gamerTag}: ${totalHours} hours across ${totalGames} games`);
-    return response;
+        // Cache the real data
+        await storage.setCachedPlatformLookup("playstation", psnData.profile.accountId, response);
+        
+        console.log(`Real PlayStation data fetched for ${psnData.profile.onlineId}: ${psnData.gaming.totalHours} hours across ${psnData.gaming.totalGames} games`);
+        return response;
+      } else {
+        throw new Error(psnData.error || 'Failed to fetch PlayStation data');
+      }
+      
+    } catch (error) {
+      console.error('Real PSN lookup error:', error);
+      throw new Error(error instanceof Error ? error.message : 'PlayStation lookup failed');
+    }
   }
 
   async getFriends(platformUserId: string, accessToken: string): Promise<FriendData[]> {

@@ -104,7 +104,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             platform: "playstation" as const,
             lastPlayed: game.lastPlayed,
           })),
-          qualificationStatus: psnData.gaming.totalHours > 1100 ? "qualified" : "not_qualified",
+          qualificationStatus: psnData.gaming.totalHours > 1100 ? "qualified" as const : "not_qualified" as const,
           qualificationReason: `Real PlayStation data: ${psnData.gaming.totalHours} hours, Level ${psnData.trophies.level}`,
           realData: true,
           trophies: psnData.trophies
@@ -171,7 +171,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             platform: "playstation" as const,
             lastPlayed: new Date().toISOString(),
           })),
-          qualificationStatus: profile.totalHours > 1100 ? "qualified" : "not_qualified",
+          qualificationStatus: profile.totalHours > 1100 ? "qualified" as const : "not_qualified" as const,
           qualificationReason: `Scraped PlayStation data: ${profile.totalHours} hours from ${profile.totalGames} games`,
           scrapedData: true
         };

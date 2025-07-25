@@ -170,6 +170,19 @@ export const platformLookupResponseSchema = z.object({
   friends: z.array(friendDataSchema).optional(),
   qualificationStatus: z.enum(["qualified", "not_qualified", "pending"]),
   qualificationReason: z.string(),
+  realData: z.boolean().optional(),
+  scrapedData: z.boolean().optional(),
+  trophies: z.object({
+    level: z.number(),
+    progress: z.number(),
+    totalTrophies: z.number(),
+    platinum: z.number(),
+    gold: z.number(),
+    silver: z.number(),
+    bronze: z.number(),
+    trophyScore: z.number(),
+    category: z.string(),
+  }).optional(),
 });
 
 export const authCallbackSchema = z.object({
