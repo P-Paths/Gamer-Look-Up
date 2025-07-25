@@ -203,3 +203,28 @@ export type PlatformLookupResponse = z.infer<typeof platformLookupResponseSchema
 export type FriendData = z.infer<typeof friendDataSchema>;
 export type AuthCallback = z.infer<typeof authCallbackSchema>;
 export type QualificationCriteria = z.infer<typeof qualificationCriteriaSchema>;
+
+// PSN Token Management schemas
+export const psnTokenRefreshSchema = z.object({
+  npsso: z.string().min(1, "NPSSO token is required"),
+  userId: z.string().optional(),
+});
+
+export type PSNTokenRefreshRequest = z.infer<typeof psnTokenRefreshSchema>;
+
+export const psnTokenStatusSchema = z.object({
+  exists: z.boolean(),
+  isExpired: z.boolean(),
+  lastUpdated: z.date().optional(),
+});
+
+export type PSNTokenStatus = z.infer<typeof psnTokenStatusSchema>;
+
+// Internal PSN Login schema (staff use only)
+export const psnInternalLoginSchema = z.object({
+  username: z.string().min(1, "Username is required"),
+  password: z.string().min(1, "Password is required"),
+  userId: z.string().optional(),
+});
+
+export type PSNInternalLoginRequest = z.infer<typeof psnInternalLoginSchema>;

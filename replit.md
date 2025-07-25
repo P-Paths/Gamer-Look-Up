@@ -15,6 +15,15 @@ This is a full-stack multi-platform gaming lookup web application that allows us
 - Test interface at `/psn-test` for NPSSO token validation
 - Command-line test script: `node test-psn.js "NPSSO_TOKEN"`
 
+**✅ Production-Ready PSN Token Management System:**
+- Built comprehensive token expiry detection and refresh system
+- Created PSNTokenExpired modal with step-by-step user guidance
+- Added TokenManager for in-memory token storage and validation
+- Built Puppeteer-based automated login for internal/staff use
+- New endpoints: `/api/psn/status`, `/api/platform/psn-refresh-token`, `/api/psn/internal-login`
+- Created dedicated PSN Dashboard at `/psn-dashboard` route
+- Real-time token monitoring with automatic expiry detection
+
 **PlayStation Service Architecture:**
 - `server/psn/getNpSSO.ts` - Puppeteer NPSSO extraction
 - `server/psn/auth.ts` - NPSSO → access token exchange  

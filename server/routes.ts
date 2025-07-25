@@ -198,7 +198,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // PSN Token Refresh endpoint
   app.post('/api/platform/psn-refresh-token', async (req, res) => {
     try {
-      const { npsso } = req.body;
+      const { npsso, userId = 'default' } = req.body;
       
       if (!npsso) {
         return res.status(400).json({ 
@@ -208,7 +208,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       // Test the new token by validating it
-      const { validateNpssoToken } = await import('./psn/getNpSSO');
+      const { validateNpssoToken } = await import('./psn/validateToken');
       const isValid = await validateNpssoToken(npsso);
       
       if (!isValid) {
@@ -218,8 +218,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
 
-      // Update environment variable (in memory for this session)
-      process.env.PSN_NPSSO_TOKEN = npsso;
+      // Store token in token manager and update environment
+      const { tokenManager, updateEnvironmentToken } = await import('./tokenManager');
+      tokenManager.storeToken(userId, npsso);
+      updateEnvironmentToken(npsso);
       
       res.json({
         success: true,
@@ -231,6 +233,69 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ 
         success: false, 
         error: error instanceof Error ? error.message : 'Token refresh failed' 
+      });
+    }
+  });
+
+  // PSN Token Status endpoint
+  app.get('/api/psn/status', async (req, res) => {
+    try {
+      const { userId = 'default' } = req.query;
+      const { tokenManager } = await import('./tokenManager');
+      
+      const status = tokenManager.getTokenStatus(userId as string);
+      
+      res.json({
+        success: true,
+        tokenStatus: status
+      });
+      
+    } catch (error) {
+      console.error('PSN status check error:', error);
+      res.status(500).json({
+        success: false,
+        error: 'Failed to check PSN token status'
+      });
+    }
+  });
+
+  // Internal Puppeteer Login endpoint (staff use only)
+  app.post('/api/psn/internal-login', async (req, res) => {
+    try {
+      const { username, password, userId = 'default' } = req.body;
+      
+      if (!username || !password) {
+        return res.status(400).json({
+          success: false,
+          error: 'Username and password required'
+        });
+      }
+
+      const { automatePlayStationLogin } = await import('./puppeteerLogin');
+      const result = await automatePlayStationLogin({ username, password });
+      
+      if (result.success && result.npssoToken) {
+        // Store the token
+        const { tokenManager, updateEnvironmentToken } = await import('./tokenManager');
+        tokenManager.storeToken(userId, result.npssoToken);
+        updateEnvironmentToken(result.npssoToken);
+        
+        res.json({
+          success: true,
+          message: 'PSN login automated successfully'
+        });
+      } else {
+        res.status(400).json({
+          success: false,
+          error: result.error || 'Login automation failed'
+        });
+      }
+      
+    } catch (error) {
+      console.error('Internal PSN login error:', error);
+      res.status(500).json({
+        success: false,
+        error: 'Internal login automation failed'
       });
     }
   });

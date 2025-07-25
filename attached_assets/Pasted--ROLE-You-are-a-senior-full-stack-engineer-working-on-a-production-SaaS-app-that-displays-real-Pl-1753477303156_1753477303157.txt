@@ -1,0 +1,112 @@
+🚨 ROLE: You are a senior full-stack engineer working on a production SaaS app that displays real PlayStation data for a user based on their gamertag and PSN login. We want to fetch **real game activity, trophy progress, and hours played** using the **NPSSO token** system.
+
+👤 USERS will log into our platform and either:
+1. Enter their **gamer tag**
+2. Optionally provide or refresh their **PSN NPSSO token** to enable real data fetching
+
+---
+
+## 🧩 OBJECTIVE
+✅ Build a system that:
+- Detects expired NPSSO tokens
+- Prompts user to refresh token
+- Optionally uses **Puppeteer** to automate token refresh for internal/staff use
+- Fetches real game, trophy, and hours-played data from the PlayStation API
+
+---
+
+## 🧱 STACK
+- Node.js + TypeScript
+- Express or Next.js backend
+- React frontend
+- Replit file structure (single repo, full-stack)
+- SQLite or Prisma for local data persistence
+
+---
+
+## 🔐 BACKGROUND (For AI memory)
+- NPSSO is a long-lived PlayStation login token (~60 days)
+- It is obtained by logging into Sony and copying the token from a browser cookie: `https://ca.account.sony.com/api/v1/ssocookie`
+- There is **no refresh_token** flow like OAuth
+- For full automation, you must simulate a login using Puppeteer to extract the new NPSSO token again
+
+---
+
+## 📁 FILES TO CREATE
+
+### ✅ `backend/psnService.ts`
+- `fetchProfileData(npssoToken: string)`
+- `fetchTrophyData(npssoToken: string)`
+- `checkTokenValidity(npssoToken: string): boolean`
+
+Use this lib or raw fetch: `psn-api`  
+Example: https://www.npmjs.com/package/psn-api
+
+---
+
+### ✅ `backend/tokenManager.ts`
+- `isTokenExpired(lastUpdated: Date): boolean`
+- `markTokenAsExpired(userId: string)`
+- `storeToken(userId, npssoToken)`
+
+Use in-memory or SQLite store
+
+---
+
+### ✅ `frontend/components/PSNReconnect.tsx`
+- Shows a popup when token is expired
+- Has a text box: "Paste your NPSSO token here"
+- Has a link to auto-open `https://ca.account.sony.com/api/v1/ssocookie`
+- OnSubmit → calls `/api/store-token` and updates the user profile
+
+---
+
+### ✅ `backend/puppeteerLogin.ts` (internal only)
+- Accepts `username` and `password`
+- Launches Puppeteer browser
+- Navigates to Sony login page
+- Logs in, grabs NPSSO token from cookie
+- Returns token or throws error
+**Do NOT use this in production UI**
+
+---
+
+### ✅ `frontend/pages/dashboard.tsx`
+- Calls `/api/get-psn-data`
+- If token is valid: show data
+- If expired: show `<PSNReconnect />`
+
+---
+
+### ✅ `/api/get-psn-data.ts`
+- Looks up user by ID
+- Checks if token exists and is valid
+- Calls `psnService.fetchProfileData(token)`
+- Returns JSON with:
+  - PSN name
+  - Avatar
+  - Most played games
+  - Total trophies
+  - Recent activity
+
+---
+
+## 🧪 TEST FLOW
+
+- [ ] Login as user with PSN token → see data
+- [ ] Wait 60 days or simulate token expiration
+- [ ] Get redirect or popup to refresh NPSSO token
+- [ ] Paste token or use Puppeteer to auto-fetch
+- [ ] See fresh data load
+
+---
+
+## 💡 EXTRA CREDIT
+- Add a `GET /api/psn/status` endpoint to check token health
+- Add token expiration tracking via background task (cron or interval)
+
+---
+
+💥 Let's go full build mode. Return full code examples for each file above. This is for a real demo and we want to show actual PSN gameplay data live. No mocks unless absolutely needed.
+
+Start with `psnService.ts` and build from there.

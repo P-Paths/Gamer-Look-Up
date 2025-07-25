@@ -462,6 +462,23 @@ export default function Home() {
           </div>
         )}
 
+        {/* Quick Links */}
+        <Card className="bg-steam-surface border-gray-800 mt-6">
+          <CardContent className="p-4">
+            <h3 className="text-sm font-medium text-gray-300 mb-3">Platform Dashboards</h3>
+            <div className="grid grid-cols-1 gap-2">
+              <Button
+                variant="outline"
+                className="border-blue-600/30 bg-blue-600/10 text-blue-400 hover:bg-blue-600/20 hover:border-blue-500 justify-start"
+                onClick={() => window.open('/psn-dashboard', '_blank')}
+              >
+                <SiPlaystation className="w-4 h-4 mr-2" />
+                PlayStation Dashboard
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+
         {/* Footer */}
         <footer className="text-center text-gray-500 text-sm mt-8 pb-4">
           <p>Powered by <a href="https://prestigiouspaths.com" className="text-steam-blue hover:underline" target="_blank" rel="noopener noreferrer">Prestigious Paths</a></p>
