@@ -1,7 +1,8 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { steamLookupRequestSchema, type SteamLookupResponse } from "@shared/schema";
+import { steamLookupRequestSchema, type SteamLookupResponse, platformLookupRequestSchema, type PlatformLookupResponse, authCallbackSchema, type Platform } from "@shared/schema";
+import { getPlatformService } from "./platformServices";
 import axios from "axios";
 
 export async function registerRoutes(app: Express): Promise<Server> {
@@ -10,6 +11,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
   if (!STEAM_API_KEY) {
     console.warn("Warning: STEAM_API_KEY not found in environment variables");
   }
+
+  // Multi-platform lookup endpoint
+  app.post("/api/platform/lookup", async (req, res) => {
+    try {
+      const { gamerTag, platform } = platformLookupRequestSchema.parse(req.body);
+      
+      const platformService = getPlatformService(platform);
+      const response = await platformService.lookupGamer(gamerTag);
+      
+      res.json(response);
+    } catch (error) {
+      console.error("Platform lookup error:", error);
+      res.status(500).json({ 
+        error: error instanceof Error ? error.message : "An unexpected error occurred during lookup." 
+      });
+    }
+  });
 
   // Steam lookup endpoint
   app.post("/api/steam/lookup", async (req, res) => {
@@ -178,6 +196,103 @@ export async function registerRoutes(app: Express): Promise<Server> {
         error: "An error occurred while fetching Steam data. Please try again later." 
       });
     }
+  });
+
+  // Multi-platform lookup endpoint
+  app.post("/api/platform/lookup", async (req, res) => {
+    try {
+      const { gamerTag, platform } = platformLookupRequestSchema.parse(req.body);
+      
+      const platformService = getPlatformService(platform);
+      const result = await platformService.lookupPlayer(gamerTag);
+      
+      res.json(result);
+    } catch (error: any) {
+      console.error(`Platform API error:`, error);
+      
+      if (error.response?.status === 403) {
+        return res.status(403).json({ 
+          error: error.message || "Platform API access forbidden. Please check your API key or permissions." 
+        });
+      }
+      
+      if (error.response?.status === 401) {
+        return res.status(401).json({ 
+          error: error.message || "Invalid platform API key. Please check your configuration." 
+        });
+      }
+
+      res.status(500).json({ 
+        error: error.message || "An error occurred while fetching platform data. Please try again later." 
+      });
+    }
+  });
+
+  // Platform authentication endpoints
+  app.post("/api/platform/auth/:platform", async (req, res) => {
+    try {
+      const platform = req.params.platform as Platform;
+      const { authCode } = authCallbackSchema.parse({ platform, authCode: req.body.authCode });
+      
+      const platformService = getPlatformService(platform);
+      const authResult = await platformService.authenticate(authCode);
+      
+      // In a real implementation, you'd store the tokens securely and associate with user
+      res.json({ 
+        success: true, 
+        message: `${platform} authentication successful`,
+        expiresAt: authResult.expiresAt 
+      });
+    } catch (error: any) {
+      console.error(`${req.params.platform} auth error:`, error);
+      res.status(500).json({ 
+        error: error.message || "Authentication failed. Please try again." 
+      });
+    }
+  });
+
+  // Get user's friends from a platform
+  app.get("/api/platform/:platform/friends/:userId", async (req, res) => {
+    try {
+      const platform = req.params.platform as Platform;
+      const userId = req.params.userId;
+      
+      // In a real implementation, you'd get the access token from the user's stored credentials
+      const platformService = getPlatformService(platform);
+      const friends = await platformService.getFriends(userId, "dummy_token");
+      
+      res.json({ friends });
+    } catch (error: any) {
+      console.error(`${req.params.platform} friends error:`, error);
+      res.status(500).json({ 
+        error: error.message || "Failed to fetch friends list. Please try again." 
+      });
+    }
+  });
+
+  // Get platform connection status
+  app.get("/api/platform/status", async (req, res) => {
+    const status = {
+      steam: {
+        available: !!(process.env.STEAM_API_KEY || process.env.STEAM_WEB_API_KEY),
+        features: ["lookup", "games", "stats"],
+        authRequired: false,
+      },
+      playstation: {
+        available: false,
+        features: ["lookup", "friends", "trophies"],
+        authRequired: true,
+        comingSoon: true,
+      },
+      xbox: {
+        available: false,
+        features: ["lookup", "friends", "achievements"],
+        authRequired: true,
+        comingSoon: true,
+      },
+    };
+    
+    res.json(status);
   });
 
   const httpServer = createServer(app);

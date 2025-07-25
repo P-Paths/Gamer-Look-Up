@@ -11,7 +11,8 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
-import { steamLookupRequestSchema, type SteamLookupRequest, type SteamLookupResponse } from "@shared/schema";
+import { steamLookupRequestSchema, type SteamLookupRequest, type SteamLookupResponse, platformLookupRequestSchema, type PlatformLookupRequest, type PlatformLookupResponse, type Platform } from "@shared/schema";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { 
   Search, 
   Clock, 
@@ -27,17 +28,19 @@ import {
   AlertTriangle,
   Loader2
 } from "lucide-react";
-import { SiSteam } from "react-icons/si";
+import { SiSteam, SiPlaystation } from "react-icons/si";
 
 export default function Home() {
   const [isInstructionsOpen, setIsInstructionsOpen] = useState(false);
-  const [results, setResults] = useState<SteamLookupResponse | null>(null);
+  const [results, setResults] = useState<PlatformLookupResponse | null>(null);
+  const [selectedPlatform, setSelectedPlatform] = useState<Platform>("steam");
   const { toast } = useToast();
 
-  const form = useForm<SteamLookupRequest>({
-    resolver: zodResolver(steamLookupRequestSchema),
+  const form = useForm<PlatformLookupRequest>({
+    resolver: zodResolver(platformLookupRequestSchema),
     defaultValues: {
       gamerTag: "",
+      platform: "steam",
     },
   });
 
@@ -51,15 +54,15 @@ export default function Home() {
   }, [form]);
 
   const lookupMutation = useMutation({
-    mutationFn: async (data: SteamLookupRequest) => {
-      const response = await apiRequest("POST", "/api/steam/lookup", data);
-      return response.json() as Promise<SteamLookupResponse>;
+    mutationFn: async (data: PlatformLookupRequest) => {
+      const response = await apiRequest("POST", "/api/platform/lookup", data);
+      return response.json() as Promise<PlatformLookupResponse>;
     },
     onSuccess: (data) => {
       setResults(data);
       toast({
         title: "Success!",
-        description: `Found Steam profile for ${data.player.personaname}`,
+        description: `Found ${data.platform} profile for ${data.player.displayName}`,
       });
       
       // Smooth scroll to results
@@ -83,8 +86,25 @@ export default function Home() {
     },
   });
 
-  const onSubmit = (data: SteamLookupRequest) => {
-    lookupMutation.mutate(data);
+  const onSubmit = (data: PlatformLookupRequest) => {
+    const submissionData = { ...data, platform: selectedPlatform };
+    lookupMutation.mutate(submissionData);
+  };
+
+  const getPlatformIcon = (platform: Platform) => {
+    switch (platform) {
+      case "steam": return <SiSteam className="text-steam-blue" />;
+      case "playstation": return <SiPlaystation className="text-blue-500" />;
+      case "xbox": return <Gamepad2 className="text-green-500" />;
+    }
+  };
+
+  const getPlatformColor = (platform: Platform) => {
+    switch (platform) {
+      case "steam": return "text-steam-blue";
+      case "playstation": return "text-blue-500";
+      case "xbox": return "text-green-500";
+    }
   };
 
   return (
@@ -93,8 +113,13 @@ export default function Home() {
       <header className="bg-steam-surface shadow-lg border-b border-gray-800">
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-center space-x-3">
-            <SiSteam className="text-steam-blue text-2xl" />
-            <h1 className="text-xl font-semibold text-white">Steam Hours Lookup</h1>
+            {getPlatformIcon(selectedPlatform)}
+            <h1 className="text-xl font-semibold text-white">Gamer Tag Lookup</h1>
+            <div className="flex space-x-2 opacity-50">
+              <SiSteam className="text-sm" />
+              <SiPlaystation className="text-sm" />
+              <Gamepad2 className="text-sm" />
+            </div>
           </div>
         </div>
       </header>
@@ -148,39 +173,78 @@ export default function Home() {
         <Card className="bg-steam-surface border-gray-800 mb-6">
           <CardContent className="p-6">
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-              <div className="relative">
-                <Label htmlFor="gamerTag" className="block text-sm font-medium text-gray-300 mb-2">
-                  <Gamepad2 className="inline mr-1 h-4 w-4" />
-                  Steam Gamer Tag
-                </Label>
-                <div className="relative">
-                  <Input
-                    id="gamerTag"
-                    type="text"
-                    placeholder="Enter Steam ID or custom URL"
-                    className="w-full px-4 py-3 bg-gray-800 border-gray-600 text-white placeholder-gray-400 focus:ring-2 focus:ring-steam-blue focus:border-transparent pr-10"
-                    {...form.register("gamerTag")}
-                  />
-                  <Search className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
+              <div className="space-y-4">
+                <div>
+                  <Label htmlFor="platform" className="block text-sm font-medium text-gray-300 mb-2">
+                    <Gamepad2 className="inline mr-1 h-4 w-4" />
+                    Gaming Platform
+                  </Label>
+                  <Select value={selectedPlatform} onValueChange={(value: Platform) => setSelectedPlatform(value)}>
+                    <SelectTrigger className="w-full bg-gray-800 border-gray-600 text-white">
+                      <SelectValue placeholder="Select a platform" />
+                    </SelectTrigger>
+                    <SelectContent className="bg-gray-800 border-gray-600">
+                      <SelectItem value="steam" className="text-white hover:bg-gray-700">
+                        <div className="flex items-center space-x-2">
+                          <SiSteam className="text-steam-blue" />
+                          <span>Steam</span>
+                        </div>
+                      </SelectItem>
+                      <SelectItem value="playstation" className="text-white hover:bg-gray-700">
+                        <div className="flex items-center space-x-2">
+                          <SiPlaystation className="text-blue-500" />
+                          <span>PlayStation (Coming Soon)</span>
+                        </div>
+                      </SelectItem>
+                      <SelectItem value="xbox" className="text-white hover:bg-gray-700">
+                        <div className="flex items-center space-x-2">
+                          <Gamepad2 className="text-green-500" />
+                          <span>Xbox (Coming Soon)</span>
+                        </div>
+                      </SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
-                {form.formState.errors.gamerTag && (
-                  <p className="text-red-400 text-sm mt-1">{form.formState.errors.gamerTag.message}</p>
-                )}
+
+                <div>
+                  <Label htmlFor="gamerTag" className="block text-sm font-medium text-gray-300 mb-2">
+                    <User className="inline mr-1 h-4 w-4" />
+                    Gamer Tag
+                  </Label>
+                  <div className="relative">
+                    <Input
+                      id="gamerTag"
+                      type="text"
+                      placeholder={selectedPlatform === "steam" ? "Enter Steam ID or custom URL" : `Enter ${selectedPlatform} gamer tag`}
+                      className="w-full px-4 py-3 bg-gray-800 border-gray-600 text-white placeholder-gray-400 focus:ring-2 focus:ring-steam-blue focus:border-transparent pr-10"
+                      {...form.register("gamerTag")}
+                    />
+                    <Search className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
+                  </div>
+                  {form.formState.errors.gamerTag && (
+                    <p className="text-red-400 text-sm mt-1">{form.formState.errors.gamerTag.message}</p>
+                  )}
+                </div>
               </div>
               
               <Button 
                 type="submit" 
-                disabled={lookupMutation.isPending}
-                className="w-full bg-steam-blue hover:bg-blue-600 disabled:bg-gray-600 disabled:cursor-not-allowed text-white font-semibold py-3 px-6"
+                disabled={lookupMutation.isPending || (selectedPlatform !== "steam")}
+                className={`w-full font-semibold py-3 px-6 text-white ${getPlatformColor(selectedPlatform) === "text-steam-blue" ? "bg-steam-blue hover:bg-blue-600" : getPlatformColor(selectedPlatform) === "text-blue-500" ? "bg-blue-500 hover:bg-blue-600" : "bg-green-500 hover:bg-green-600"} disabled:bg-gray-600 disabled:cursor-not-allowed`}
               >
                 {lookupMutation.isPending ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                     Looking up...
                   </>
+                ) : selectedPlatform !== "steam" ? (
+                  <>
+                    {selectedPlatform.charAt(0).toUpperCase() + selectedPlatform.slice(1)} Coming Soon
+                    <Clock className="ml-2 h-4 w-4" />
+                  </>
                 ) : (
                   <>
-                    Look Up Hours
+                    Look Up Gaming Stats
                     <Clock className="ml-2 h-4 w-4" />
                   </>
                 )}
@@ -197,19 +261,38 @@ export default function Home() {
               <CardContent className="p-6">
                 <div className="flex items-center space-x-4 mb-4">
                   <Avatar className="w-16 h-16">
-                    <AvatarImage src={results.player.avatarfull} alt={results.player.personaname} />
+                    <AvatarImage src={results.player.avatar} alt={results.player.displayName} />
                     <AvatarFallback className="bg-gray-700">
                       <User className="text-gray-400 text-xl" />
                     </AvatarFallback>
                   </Avatar>
-                  <div>
-                    <h2 className="text-xl font-semibold text-white">
-                      {results.player.personaname}
-                    </h2>
+                  <div className="flex-1">
+                    <div className="flex items-center space-x-2">
+                      {getPlatformIcon(results.platform)}
+                      <h2 className="text-xl font-semibold text-white">
+                        {results.player.displayName}
+                      </h2>
+                    </div>
                     <p className="text-gray-400 text-sm">
-                      Steam ID: {results.player.steamid}
+                      {results.platform.charAt(0).toUpperCase() + results.platform.slice(1)} ID: {results.player.id}
+                    </p>
+                    <p className="text-gray-400 text-sm">
+                      Gamer Tag: {results.player.gamerTag}
                     </p>
                   </div>
+                </div>
+                
+                {/* Qualification Status */}
+                <div className={`mb-4 p-3 rounded-lg border ${results.qualificationStatus === "qualified" ? "bg-green-900/20 border-green-600/30" : "bg-red-900/20 border-red-600/30"}`}>
+                  <div className="flex items-center space-x-2">
+                    <div className={`w-3 h-3 rounded-full ${results.qualificationStatus === "qualified" ? "bg-green-500" : "bg-red-500"}`}></div>
+                    <span className={`font-semibold ${results.qualificationStatus === "qualified" ? "text-green-200" : "text-red-200"}`}>
+                      {results.qualificationStatus === "qualified" ? "✅ Qualified" : "❌ Not Qualified"}
+                    </span>
+                  </div>
+                  <p className={`text-sm mt-1 ${results.qualificationStatus === "qualified" ? "text-green-300" : "text-red-300"}`}>
+                    {results.qualificationReason}
+                  </p>
                 </div>
                 
                 <div className="grid grid-cols-1 gap-4">
@@ -226,7 +309,7 @@ export default function Home() {
                     <div className="flex items-center justify-between">
                       <span className="text-gray-300 text-sm">Last Online</span>
                       <span className="text-gray-300 text-sm">
-                        {results.lastLogoffFormatted}
+                        {results.player.lastOnline}
                       </span>
                     </div>
                   </div>
@@ -244,29 +327,18 @@ export default function Home() {
                 
                 <div className="space-y-3">
                   {results.topGames.map((game, index) => (
-                    <div key={game.appid} className="flex items-center justify-between bg-gray-800/30 rounded-lg p-3">
+                    <div key={game.id} className="flex items-center justify-between bg-gray-800/30 rounded-lg p-3">
                       <div className="flex items-center space-x-3">
                         <div className="w-10 h-10 bg-gray-700 rounded flex items-center justify-center">
-                          {game.img_icon_url ? (
-                            <img 
-                              src={`https://media.steampowered.com/steamcommunity/public/images/apps/${game.appid}/${game.img_icon_url}.jpg`}
-                              alt={game.name}
-                              className="w-8 h-8 rounded"
-                            />
-                          ) : (
-                            <Gamepad2 className="text-gray-400 h-5 w-5" />
-                          )}
+                          <Gamepad2 className="text-gray-400 h-5 w-5" />
                         </div>
                         <div>
                           <p className="font-medium text-white">{game.name}</p>
-                          <p className="text-gray-400 text-xs">App ID: {game.appid}</p>
+                          <p className="text-gray-400 text-xs">Game ID: {game.id}</p>
                         </div>
                       </div>
                       <div className="text-right">
-                        <p className="font-semibold text-steam-accent">{game.playtime_forever} hrs</p>
-                        {game.playtime_2weeks && game.playtime_2weeks > 0 && (
-                          <p className="text-gray-400 text-xs">{game.playtime_2weeks} hrs past 2 weeks</p>
-                        )}
+                        <p className="font-semibold text-steam-accent">{game.hoursPlayed} hrs</p>
                       </div>
                     </div>
                   ))}
@@ -299,8 +371,7 @@ export default function Home() {
 
         {/* Footer */}
         <footer className="text-center text-gray-500 text-sm mt-8 pb-4">
-          <p>Powered by <a href="https://developer.valvesoftware.com/wiki/Steam_Web_API" className="text-steam-blue hover:underline" target="_blank" rel="noopener noreferrer">Steam Web API <ExternalLink className="inline h-3 w-3" /></a></p>
-          <p className="mt-2">This tool requires a valid Steam API key to function</p>
+          <p>Powered by Gaming APIs | Built by Prestigious Paths</p>
         </footer>
       </main>
     </div>
