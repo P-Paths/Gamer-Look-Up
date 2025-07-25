@@ -77,6 +77,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       const player = players[0];
+      
+      // Check if profile is visible to API (communityvisibilitystate: 3 = public)
+      if (player.communityvisibilitystate !== 3) {
+        return res.status(403).json({ 
+          error: "This Steam profile is private to the Steam Web API. To fix this:\n\n1. Open Steam client\n2. Go to Steam → View → Settings\n3. Click 'Privacy Settings'\n4. Set 'My Profile' to 'Public'\n5. Set 'Game Details' to 'Public'\n6. Wait a few minutes for changes to take effect\n\nNote: Website privacy settings are different from API privacy settings." 
+        });
+      }
 
       // Step 3: Get owned games
       const gamesResponse = await axios.get(
@@ -94,7 +101,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       if (!gamesResponse.data.response.games) {
         return res.status(403).json({ 
-          error: "This Steam profile's game details are private. The user needs to make their game details public in their Steam privacy settings." 
+          error: "This Steam profile's game details are private. To fix this:\n\n1. Go to Steam → View → Settings → Privacy Settings\n2. Set 'My Profile' to Public\n3. Set 'Game Details' to Public\n4. Set 'My Game Library' to Public\n\nNote: Changes may take a few minutes to take effect." 
         });
       }
 

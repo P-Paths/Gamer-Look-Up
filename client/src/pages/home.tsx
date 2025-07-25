@@ -74,7 +74,9 @@ export default function Home() {
       const errorMessage = error.message || "An error occurred while fetching Steam data";
       toast({
         title: "Error",
-        description: errorMessage,
+        description: errorMessage.split('\n').map((line: string, index: number) => (
+          <div key={index}>{line}</div>
+        )),
         variant: "destructive",
       });
       setResults(null);
@@ -118,21 +120,22 @@ export default function Home() {
                   <Alert className="bg-yellow-900/20 border-yellow-600/30">
                     <AlertTriangle className="h-4 w-4 text-yellow-200" />
                     <AlertDescription className="text-yellow-200">
-                      <p className="font-medium mb-2">⚠️ Steam API Key Required</p>
-                      <ol className="list-decimal list-inside space-y-1 text-xs">
-                        <li>Visit <a href="https://steamcommunity.com/dev/apikey" className="text-steam-blue hover:underline" target="_blank" rel="noopener noreferrer">Steam API Key Page <ExternalLink className="inline h-3 w-3" /></a></li>
-                        <li>Log in with your Steam account</li>
-                        <li>Enter any domain name (e.g., localhost)</li>
-                        <li>Copy your API key</li>
-                        <li>Add it to your backend configuration</li>
-                      </ol>
+                      <p className="font-medium mb-2">✅ Steam API Key Configured</p>
+                      <p className="text-xs mb-2">The app is ready to fetch real Steam data!</p>
+                      <p className="text-xs"><strong>Try searching:</strong> "gaben" or "robbaz" (known public profiles)</p>
                     </AlertDescription>
                   </Alert>
-                  <Alert className="bg-blue-900/20 border-blue-600/30">
-                    <Settings className="h-4 w-4 text-blue-200" />
-                    <AlertDescription className="text-blue-200">
-                      <p className="font-medium mb-2">🔧 Backend Setup</p>
-                      <p className="text-xs">Configure your Node.js backend with the Steam API key as STEAM_API_KEY environment variable.</p>
+                  <Alert className="bg-red-900/20 border-red-600/30">
+                    <AlertTriangle className="h-4 w-4 text-red-200" />
+                    <AlertDescription className="text-red-200">
+                      <p className="font-medium mb-2">🔒 Privacy Settings Required</p>
+                      <p className="text-xs mb-2">If you get "profile is private" errors, you need to:</p>
+                      <ol className="list-decimal list-inside space-y-1 text-xs">
+                        <li>Open Steam client → Settings → Privacy Settings</li>
+                        <li>Set "My Profile" to Public</li>
+                        <li>Set "Game Details" to Public</li>
+                        <li>Wait 5-10 minutes for changes to take effect</li>
+                      </ol>
                     </AlertDescription>
                   </Alert>
                 </div>
@@ -261,7 +264,7 @@ export default function Home() {
                       </div>
                       <div className="text-right">
                         <p className="font-semibold text-steam-accent">{game.playtime_forever} hrs</p>
-                        {game.playtime_2weeks > 0 && (
+                        {game.playtime_2weeks && game.playtime_2weeks > 0 && (
                           <p className="text-gray-400 text-xs">{game.playtime_2weeks} hrs past 2 weeks</p>
                         )}
                       </div>
