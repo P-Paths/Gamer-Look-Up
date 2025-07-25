@@ -194,15 +194,26 @@ export class PlayStationService implements PlatformService {
       let accessCode: string = "";
       
       try {
+        console.log(`Attempting PSN lookup for: ${gamerTag}`);
         accessCode = await exchangeNpssoForAccessCode(npssoToken);
+        console.log("PSN access code obtained successfully");
+        
         searchResults = await makeUniversalSearch(
           { accessToken: accessCode },
           gamerTag,
           "SocialAllAccounts"
         );
+        
+        console.log("PSN search results:", JSON.stringify(searchResults, null, 2));
         useRealAPI = searchResults?.domainResponses?.length > 0;
+        
+        if (useRealAPI) {
+          console.log(`Found PSN user: ${gamerTag}, proceeding with real data`);
+        } else {
+          console.log(`No PSN results found for: ${gamerTag}`);
+        }
       } catch (apiError) {
-        console.warn("PSN API failed, using personalized data generation:", apiError);
+        console.error("PSN API error details:", apiError);
         useRealAPI = false;
       }
 
@@ -267,13 +278,18 @@ export class PlayStationService implements PlatformService {
       // Get user's games and trophies
       let userTitles: any = null;
       try {
+        const accountId = profileData.accountId || profileData.onlineId;
+        console.log(`Fetching PSN titles for account: ${accountId}`);
+        
         userTitles = await getUserTitles(
           { accessToken: accessCode },
-          profileData.accountId || profileData.onlineId,
+          accountId,
           { limit: 100, offset: 0 }
         );
+        
+        console.log("PSN titles fetched:", JSON.stringify(userTitles, null, 2));
       } catch (titleError) {
-        console.warn("Could not fetch PSN titles:", titleError);
+        console.error("Could not fetch PSN titles:", titleError);
       }
 
       let totalHours = 0;
