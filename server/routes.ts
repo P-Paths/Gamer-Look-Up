@@ -29,6 +29,40 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Cache statistics endpoint for monitoring performance
+  app.get("/api/cache/stats", async (req, res) => {
+    try {
+      const stats = (storage as any).getCacheStats();
+      const detailedStats = {
+        ...stats,
+        cacheTTL: "5 minutes",
+        performanceMetrics: {
+          steam: {
+            ...stats.steam,
+            hitRate: stats.steam.hits + stats.steam.misses > 0 
+              ? ((stats.steam.hits / (stats.steam.hits + stats.steam.misses)) * 100).toFixed(2) + '%'
+              : '0%'
+          },
+          playstation: {
+            ...stats.playstation,
+            hitRate: stats.playstation.hits + stats.playstation.misses > 0 
+              ? ((stats.playstation.hits / (stats.playstation.hits + stats.playstation.misses)) * 100).toFixed(2) + '%'
+              : '0%'
+          },
+          xbox: {
+            ...stats.xbox,
+            hitRate: stats.xbox.hits + stats.xbox.misses > 0 
+              ? ((stats.xbox.hits / (stats.xbox.hits + stats.xbox.misses)) * 100).toFixed(2) + '%'
+              : '0%'
+          }
+        }
+      };
+      res.json(detailedStats);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to retrieve cache statistics" });
+    }
+  });
+
   // Steam lookup endpoint
   app.post("/api/steam/lookup", async (req, res) => {
     try {

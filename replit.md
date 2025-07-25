@@ -57,9 +57,11 @@ Preferred communication style: Simple, everyday language.
    - Games library fetching with playtime statistics
    - Comprehensive error handling for API failures
 
-2. **Caching Layer** (`server/storage.ts`)
-   - In-memory cache for Steam API responses
-   - 5-minute TTL to balance performance and data freshness
+2. **Enhanced Caching System** (`server/storage.ts`)
+   - Multi-platform in-memory cache for Steam/PlayStation/Xbox API responses
+   - 5-minute TTL with automatic cleanup every 2 minutes
+   - Performance monitoring with hit rates, misses, and eviction tracking
+   - Cache statistics endpoint at `/api/cache/stats` for monitoring
    - Interface-based design for easy storage backend swapping
 
 3. **Development Tools** (`server/vite.ts`)
@@ -69,15 +71,16 @@ Preferred communication style: Simple, everyday language.
 
 ## Data Flow
 
-1. **User Input**: User enters Steam gamer tag in the frontend form
+1. **User Input**: User enters gamer tag in the frontend form and selects platform
 2. **Form Validation**: Zod schema validates input before submission
-3. **API Request**: Frontend sends POST request to `/api/steam/lookup`
-4. **Steam ID Resolution**: Backend resolves gamer tag to Steam ID via Steam API
-5. **Data Fetching**: Parallel requests to Steam API for player info and games
-6. **Data Processing**: Backend calculates statistics (total hours, averages, top games)
-7. **Caching**: Results stored in memory cache for subsequent requests
-8. **Response**: Processed data returned to frontend
-9. **UI Update**: React Query updates component state and renders results
+3. **API Request**: Frontend sends POST request to `/api/platform/lookup`
+4. **Cache Check**: Backend checks 5-minute TTL cache for existing data
+5. **Platform Service**: If cache miss, appropriate platform service (Steam/PSN/Xbox) handles lookup
+6. **Data Fetching**: Real API calls to Steam/PlayStation/Xbox for authentic gaming data
+7. **Data Processing**: Backend calculates statistics and gaming metrics
+8. **Caching**: Results stored in optimized cache with automatic cleanup
+9. **Response**: Processed authentic gaming data returned to frontend
+10. **UI Update**: React Query updates component state and renders real friend data
 
 ## External Dependencies
 

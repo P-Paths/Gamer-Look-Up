@@ -39,10 +39,57 @@ export class DatabaseStorage implements IStorage {
   private lookupCache: Map<string, { data: SteamLookupResponse; timestamp: number }>;
   private platformCache: Map<string, { data: PlatformLookupResponse; timestamp: number }>;
   private readonly CACHE_TTL = 5 * 60 * 1000; // 5 minutes
+  private cacheStats = {
+    steam: { hits: 0, misses: 0, evictions: 0 },
+    playstation: { hits: 0, misses: 0, evictions: 0 },
+    xbox: { hits: 0, misses: 0, evictions: 0 }
+  };
 
   constructor() {
     this.lookupCache = new Map();
     this.platformCache = new Map();
+    
+    // Clean up expired cache entries every 2 minutes
+    setInterval(() => this.cleanupExpiredCache(), 2 * 60 * 1000);
+  }
+
+  private cleanupExpiredCache(): void {
+    const now = Date.now();
+    let evicted = 0;
+    
+    // Clean platform cache
+    for (const [key, value] of Array.from(this.platformCache.entries())) {
+      if (now - value.timestamp > this.CACHE_TTL) {
+        this.platformCache.delete(key);
+        evicted++;
+        const platform = key.split(':')[0] as Platform;
+        if (this.cacheStats[platform]) {
+          this.cacheStats[platform].evictions++;
+        }
+      }
+    }
+    
+    // Clean legacy Steam cache
+    for (const [key, value] of Array.from(this.lookupCache.entries())) {
+      if (now - value.timestamp > this.CACHE_TTL) {
+        this.lookupCache.delete(key);
+        evicted++;
+      }
+    }
+    
+    if (evicted > 0) {
+      console.log(`Cache cleanup: evicted ${evicted} expired entries`);
+    }
+  }
+
+  getCacheStats() {
+    return {
+      ...this.cacheStats,
+      totalEntries: {
+        platform: this.platformCache.size,
+        legacy: this.lookupCache.size
+      }
+    };
   }
 
   // User management
@@ -179,13 +226,26 @@ export class DatabaseStorage implements IStorage {
   async getCachedPlatformLookup(platform: Platform, userId: string): Promise<PlatformLookupResponse | undefined> {
     const key = `${platform}:${userId}`;
     const cached = this.platformCache.get(key);
-    if (!cached) return undefined;
-
-    if (Date.now() - cached.timestamp > this.CACHE_TTL) {
-      this.platformCache.delete(key);
+    
+    if (!cached) {
+      if (this.cacheStats[platform]) {
+        this.cacheStats[platform].misses++;
+      }
       return undefined;
     }
 
+    if (Date.now() - cached.timestamp > this.CACHE_TTL) {
+      this.platformCache.delete(key);
+      if (this.cacheStats[platform]) {
+        this.cacheStats[platform].misses++;
+        this.cacheStats[platform].evictions++;
+      }
+      return undefined;
+    }
+
+    if (this.cacheStats[platform]) {
+      this.cacheStats[platform].hits++;
+    }
     return cached.data;
   }
 

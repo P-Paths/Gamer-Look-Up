@@ -53,8 +53,12 @@ export class SteamService implements PlatformService {
     // Check cache first
     const cached = await storage.getCachedPlatformLookup("steam", steamId);
     if (cached) {
+      console.log(`Steam cache hit for user: ${gamerTag} (Steam ID: ${steamId})`);
       return cached;
     }
+    
+    console.log(`Steam cache miss for user: ${gamerTag} (Steam ID: ${steamId}), fetching from API`);
+    const startTime = Date.now();
 
     // Step 2: Get player summary
     const playerResponse = await axios.get(
@@ -159,6 +163,8 @@ export class SteamService implements PlatformService {
 
     // Cache the response
     await storage.setCachedPlatformLookup("steam", steamId, response);
+    const fetchTime = Date.now() - startTime;
+    console.log(`Steam data fetched and cached for ${gamerTag} in ${fetchTime}ms (${totalGames} games, ${totalHours} hours)`);
 
     return response;
   }
