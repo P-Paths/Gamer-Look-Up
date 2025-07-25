@@ -130,7 +130,16 @@ export default function Home() {
 
   const exportAsCSV = () => {
     if (!results) return;
-    let csv = "Game,Hours Played,Platform,Last Played\n";
+    const yearlyHours = Math.round(results.totalHours / 3);
+    const dailyAverage = Math.round(yearlyHours / 365);
+    
+    let csv = "Metric,Value\n";
+    csv += `"Total Hours",${results.totalHours}\n`;
+    csv += `"Hours Per Year",${yearlyHours}\n`;
+    csv += `"Daily Average Hours",${dailyAverage}\n`;
+    csv += `"Total Games",${results.totalGames}\n`;
+    csv += `"Average Hours Per Game",${results.avgHoursPerGame}\n`;
+    csv += "\nGame,Hours Played,Platform,Last Played\n";
     results.topGames.forEach(game => {
       csv += `"${game.name}",${game.hoursPlayed},${game.platform},"${game.lastPlayed || 'N/A'}"\n`;
     });
@@ -315,6 +324,27 @@ export default function Home() {
                       <span className="text-gray-300 text-sm">Total Hours Played</span>
                       <span className="text-steam-accent font-bold text-lg">
                         {results.totalHours.toLocaleString()} hrs
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="bg-gray-800/50 rounded p-3">
+                    <div className="flex items-center justify-between">
+                      <span className="text-gray-300 text-sm">Hours Per Year</span>
+                      <span className="text-green-400 font-bold text-lg">
+                        {Math.round(results.totalHours / 3)} hrs/year
+                      </span>
+                    </div>
+                    <div className="text-xs text-gray-400 mt-1">
+                      Estimated based on gaming activity
+                    </div>
+                  </div>
+
+                  <div className="bg-gray-800/50 rounded p-3">
+                    <div className="flex items-center justify-between">
+                      <span className="text-gray-300 text-sm">Daily Average</span>
+                      <span className="text-blue-400 font-semibold">
+                        {Math.round((results.totalHours / 3) / 365)} hrs/day
                       </span>
                     </div>
                   </div>
