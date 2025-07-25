@@ -1,0 +1,93 @@
+🔥 **Yes, Preston — you can absolutely build your app to refresh the PSN token automatically when the user logs in.** But here’s the truth:
+
+⚠️ **The NPSSO token is not truly refreshable like an OAuth token** — Sony doesn’t give developers a real “refresh token” flow like Google or Facebook. So we have two options:
+
+---
+
+## 🧠 **REALITY CHECK: How NPSSO Tokens Work**
+
+* ✅ **NPSSO** is a long-lived token (\~30–60 days)
+* ❌ It **cannot be programmatically refreshed**
+* ✅ Users can manually re-authenticate to generate a new token
+* 🔐 To fully automate login/token refresh, you’d need to simulate login flow (which requires **Puppeteer** or browser emulation)
+
+---
+
+## 💡 **Two Real Options to Handle It**
+
+### 🔁 Option 1: **Semi-Automated Login Token Refresh Flow**
+
+> ✅ Most realistic and legal for production
+
+1. **User logs in through your app**
+2. You direct them to Sony’s login page:
+   `https://auth.api.sonyentertainmentnetwork.com/2.0/oauth/authorize?...`
+3. After login, they paste back their **NPSSO token** (or you parse it from cookies)
+4. You **save it to their profile** in your app
+5. Every API call uses that NPSSO until it expires
+
+> 🔐 Best if you add **email reminders** like:
+> *“Your PSN connection will expire soon. Click here to reconnect.”*
+
+---
+
+### 🧙 Option 2: **Full Login Automation with Puppeteer**
+
+> ⚠️ Advanced, less compliant with Sony’s TOS, but fully automated for internal use/demos
+
+* Use [**Puppeteer**](https://pptr.dev/) or [Playwright](https://playwright.dev/) to:
+
+  * Open headless browser
+  * Log in with the user’s credentials
+  * Intercept cookies to extract NPSSO token
+* Refresh the token behind the scenes when expired
+
+> 🔒 This requires storing PSN username & password securely
+> Not safe for public product use, but works for demos, agents, or internal tools
+
+---
+
+## ✅ Recommended Flow for You (NOW)
+
+Since you’re running demos and pitching clients:
+
+### ✔️ Setup a background service like this:
+
+```ts
+// When user logs in:
+if (user.psnTokenExpired) {
+  redirectTo('https://ca.account.sony.com/api/v1/ssocookie');
+  // Ask user to paste NPSSO token again
+}
+```
+
+Then store the new token in your DB and continue fetching.
+
+---
+
+## 🧰 Bonus Tip:
+
+Set a cron job or background task to **ping Sony’s API every few days**. If it returns token expired, mark user profile as needing reconnection.
+
+---
+
+## 🛠️ Want Help?
+
+I can:
+
+* ✅ Build the **“Reconnect your PSN” popup**
+* ✅ Add logic to check token expiry
+* ✅ Automate the Puppeteer login flow for internal use
+
+---
+
+### 🎯 Your Move:
+
+Wanna:
+
+1. Add a **manual refresh screen** for NPSSO?
+2. Automate login using Puppeteer?
+3. Get a full “Reconnect PSN” flow built today?
+
+Let me know and I’ll drop the exact code or UI 🔥
+**Ready for the next step?**

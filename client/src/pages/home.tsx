@@ -29,11 +29,13 @@ import {
   Loader2
 } from "lucide-react";
 import { SiSteam, SiPlaystation } from "react-icons/si";
+import { PSNTokenExpired } from "@/components/PSNTokenExpired";
 
 export default function Home() {
   const [isInstructionsOpen, setIsInstructionsOpen] = useState(false);
   const [results, setResults] = useState<PlatformLookupResponse | null>(null);
   const [selectedPlatform, setSelectedPlatform] = useState<Platform>("steam");
+  const [showPSNTokenExpired, setShowPSNTokenExpired] = useState(false);
   const { toast } = useToast();
 
   const form = useForm<PlatformLookupRequest>({
@@ -74,7 +76,14 @@ export default function Home() {
       }, 100);
     },
     onError: (error: any) => {
-      const errorMessage = error.message || "An error occurred while fetching Steam data";
+      const errorMessage = error.message || "An error occurred while fetching data";
+      
+      // Check if it's a PSN token expiry error
+      if (selectedPlatform === "playstation" && errorMessage.includes("Invalid NPSSO token")) {
+        setShowPSNTokenExpired(true);
+        return;
+      }
+      
       toast({
         title: "Error",
         description: errorMessage.split('\n').map((line: string, index: number) => (
@@ -144,6 +153,26 @@ export default function Home() {
       csv += `"${game.name}",${game.hoursPlayed},${game.platform},"${game.lastPlayed || 'N/A'}"\n`;
     });
     copyToClipboard(csv);
+  };
+
+  const handlePSNTokenRefresh = async (newToken: string) => {
+    try {
+      const response = await apiRequest("POST", "/api/platform/psn-refresh-token", { 
+        npsso: newToken 
+      });
+      
+      if (response.ok) {
+        // Retry the original lookup
+        const gamerTag = form.getValues('gamerTag');
+        if (gamerTag) {
+          lookupMutation.mutate({ gamerTag, platform: 'playstation' });
+        }
+      } else {
+        throw new Error('Failed to refresh PSN token');
+      }
+    } catch (error) {
+      throw error;
+    }
   };
 
   return (
@@ -438,6 +467,13 @@ export default function Home() {
           <p>Powered by <a href="https://prestigiouspaths.com" className="text-steam-blue hover:underline" target="_blank" rel="noopener noreferrer">Prestigious Paths</a></p>
         </footer>
       </main>
+
+      {/* PSN Token Expired Modal */}
+      <PSNTokenExpired
+        isOpen={showPSNTokenExpired}
+        onTokenRefresh={handlePSNTokenRefresh}
+        onClose={() => setShowPSNTokenExpired(false)}
+      />
     </div>
   );
 }

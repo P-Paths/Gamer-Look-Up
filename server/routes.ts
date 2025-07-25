@@ -195,6 +195,46 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // PSN Token Refresh endpoint
+  app.post('/api/platform/psn-refresh-token', async (req, res) => {
+    try {
+      const { npsso } = req.body;
+      
+      if (!npsso) {
+        return res.status(400).json({ 
+          success: false, 
+          error: 'NPSSO token is required' 
+        });
+      }
+
+      // Test the new token by validating it
+      const { validateNpssoToken } = await import('./psn/getNpSSO');
+      const isValid = await validateNpssoToken(npsso);
+      
+      if (!isValid) {
+        return res.status(400).json({
+          success: false,
+          error: 'Invalid NPSSO token provided'
+        });
+      }
+
+      // Update environment variable (in memory for this session)
+      process.env.PSN_NPSSO_TOKEN = npsso;
+      
+      res.json({
+        success: true,
+        message: 'PSN token refreshed successfully'
+      });
+      
+    } catch (error) {
+      console.error('PSN token refresh error:', error);
+      res.status(500).json({ 
+        success: false, 
+        error: error instanceof Error ? error.message : 'Token refresh failed' 
+      });
+    }
+  });
+
   // Steam lookup endpoint
   app.post("/api/steam/lookup", async (req, res) => {
     try {
