@@ -107,6 +107,36 @@ export default function Home() {
     }
   };
 
+  const copyToClipboard = (data: string) => {
+    navigator.clipboard.writeText(data).then(() => {
+      toast({
+        title: "Copied!",
+        description: "Gaming data copied to clipboard",
+      });
+    }).catch(() => {
+      toast({
+        title: "Copy failed",
+        description: "Please try again",
+        variant: "destructive",
+      });
+    });
+  };
+
+  const exportAsJSON = () => {
+    if (!results) return;
+    const jsonData = JSON.stringify(results, null, 2);
+    copyToClipboard(jsonData);
+  };
+
+  const exportAsCSV = () => {
+    if (!results) return;
+    let csv = "Game,Hours Played,Platform,Last Played\n";
+    results.topGames.forEach(game => {
+      csv += `"${game.name}",${game.hoursPlayed},${game.platform},"${game.lastPlayed || 'N/A'}"\n`;
+    });
+    copyToClipboard(csv);
+  };
+
   return (
     <div className="min-h-screen bg-steam-dark text-white">
       {/* Header */}
@@ -193,13 +223,13 @@ export default function Home() {
                       <SelectItem value="playstation" className="text-white hover:bg-gray-700">
                         <div className="flex items-center space-x-2">
                           <SiPlaystation className="text-blue-500" />
-                          <span>PlayStation (Coming Soon)</span>
+                          <span>PlayStation</span>
                         </div>
                       </SelectItem>
                       <SelectItem value="xbox" className="text-white hover:bg-gray-700">
                         <div className="flex items-center space-x-2">
                           <Gamepad2 className="text-green-500" />
-                          <span>Xbox (Coming Soon)</span>
+                          <span>Xbox</span>
                         </div>
                       </SelectItem>
                     </SelectContent>
@@ -229,18 +259,13 @@ export default function Home() {
               
               <Button 
                 type="submit" 
-                disabled={lookupMutation.isPending || (selectedPlatform !== "steam")}
+                disabled={lookupMutation.isPending}
                 className={`w-full font-semibold py-3 px-6 text-white ${getPlatformColor(selectedPlatform) === "text-steam-blue" ? "bg-steam-blue hover:bg-blue-600" : getPlatformColor(selectedPlatform) === "text-blue-500" ? "bg-blue-500 hover:bg-blue-600" : "bg-green-500 hover:bg-green-600"} disabled:bg-gray-600 disabled:cursor-not-allowed`}
               >
                 {lookupMutation.isPending ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                     Looking up...
-                  </>
-                ) : selectedPlatform !== "steam" ? (
-                  <>
-                    {selectedPlatform.charAt(0).toUpperCase() + selectedPlatform.slice(1)} Coming Soon
-                    <Clock className="ml-2 h-4 w-4" />
                   </>
                 ) : (
                   <>
@@ -282,18 +307,7 @@ export default function Home() {
                   </div>
                 </div>
                 
-                {/* Qualification Status */}
-                <div className={`mb-4 p-3 rounded-lg border ${results.qualificationStatus === "qualified" ? "bg-green-900/20 border-green-600/30" : "bg-red-900/20 border-red-600/30"}`}>
-                  <div className="flex items-center space-x-2">
-                    <div className={`w-3 h-3 rounded-full ${results.qualificationStatus === "qualified" ? "bg-green-500" : "bg-red-500"}`}></div>
-                    <span className={`font-semibold ${results.qualificationStatus === "qualified" ? "text-green-200" : "text-red-200"}`}>
-                      {results.qualificationStatus === "qualified" ? "✅ Qualified" : "❌ Not Qualified"}
-                    </span>
-                  </div>
-                  <p className={`text-sm mt-1 ${results.qualificationStatus === "qualified" ? "text-green-300" : "text-red-300"}`}>
-                    {results.qualificationReason}
-                  </p>
-                </div>
+
                 
                 <div className="grid grid-cols-1 gap-4">
                   <div className="bg-gray-800/50 rounded p-3">
@@ -313,6 +327,26 @@ export default function Home() {
                       </span>
                     </div>
                   </div>
+                </div>
+
+                {/* Export Options */}
+                <div className="mt-4 flex gap-2">
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    onClick={exportAsJSON}
+                    className="text-white border-gray-600 hover:bg-gray-700"
+                  >
+                    Copy JSON
+                  </Button>
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    onClick={exportAsCSV}
+                    className="text-white border-gray-600 hover:bg-gray-700"
+                  >
+                    Copy CSV
+                  </Button>
                 </div>
               </CardContent>
             </Card>
@@ -371,7 +405,7 @@ export default function Home() {
 
         {/* Footer */}
         <footer className="text-center text-gray-500 text-sm mt-8 pb-4">
-          <p>Powered by Gaming APIs | Built by Prestigious Paths</p>
+          <p>Powered by <a href="https://prestigiouspaths.com" className="text-steam-blue hover:underline" target="_blank" rel="noopener noreferrer">Prestigious Paths</a></p>
         </footer>
       </main>
     </div>

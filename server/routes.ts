@@ -18,7 +18,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const { gamerTag, platform } = platformLookupRequestSchema.parse(req.body);
       
       const platformService = getPlatformService(platform);
-      const response = await platformService.lookupGamer(gamerTag);
+      const response = await platformService.lookupPlayer(gamerTag);
       
       res.json(response);
     } catch (error) {
