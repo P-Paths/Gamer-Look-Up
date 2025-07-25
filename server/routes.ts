@@ -196,6 +196,96 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // PSN Token Refresh endpoint
+  // Multi-source PlayStation data endpoint (ANY WAY POSSIBLE)
+  app.post('/api/platform/psn-multi-source', async (req, res) => {
+    try {
+      const { gamerTag } = req.body;
+      
+      if (!gamerTag) {
+        return res.status(400).json({ 
+          success: false, 
+          error: 'Gamer tag is required' 
+        });
+      }
+
+      console.log(`🎯 Multi-source PlayStation lookup for: ${gamerTag}`);
+      
+      const { MultiSourcePSNData } = await import('./psn/multiSourcePSN');
+      const multiSource = new MultiSourcePSNData();
+      
+      try {
+        const psnData = await multiSource.getPlayStationData(gamerTag);
+        
+        // Convert to standard platform response format
+        const response: any = {
+          platform: 'playstation' as const,
+          player: {
+            id: psnData.profile.onlineId,
+            gamerTag: psnData.profile.onlineId,
+            displayName: psnData.profile.displayName,
+            avatar: psnData.profile.avatarUrl || '',
+            lastOnline: psnData.timestamp
+          },
+          totalHours: psnData.totalHours,
+          totalGames: psnData.totalGames,
+          avgHoursPerGame: psnData.avgHoursPerGame,
+          topGames: psnData.games.slice(0, 3).map(game => ({
+            id: game.name,
+            name: game.name,
+            hoursPlayed: game.hoursPlayed,
+            platform: 'playstation' as const,
+            lastPlayed: game.lastPlayed || new Date().toISOString()
+          })),
+          qualificationStatus: 'qualified' as const,
+          qualificationReason: `Data from ${psnData.source} (${psnData.dataQuality} quality)`,
+          realData: true,
+          dataSource: psnData.source,
+          dataQuality: psnData.dataQuality,
+          dataFreshness: psnData.freshness,
+          trophies: {
+            level: psnData.profile.level,
+            progress: psnData.profile.progress,
+            totalTrophies: psnData.profile.totalTrophies,
+            platinum: psnData.profile.platinum,
+            gold: psnData.profile.gold,
+            silver: psnData.profile.silver,
+            bronze: psnData.profile.bronze,
+            trophyScore: psnData.profile.totalTrophies * 100,
+            category: psnData.dataQuality
+          }
+        };
+
+        // Cache the result
+        await storage.setCachedPlatformLookup("playstation", psnData.profile.onlineId, response);
+        
+        console.log(`✅ Multi-source success: ${psnData.source} (${psnData.dataQuality})`);
+        
+        // Cleanup
+        await multiSource.cleanup();
+        
+        res.json(response);
+        
+      } catch (error) {
+        console.error('❌ All PlayStation sources failed:', error);
+        await multiSource.cleanup();
+        
+        res.status(500).json({
+          success: false,
+          error: error instanceof Error ? error.message : 'All PlayStation data sources failed',
+          gamerTag,
+          sources_attempted: ['official_api', 'psnprofiles_scraper', 'combined_fallback']
+        });
+      }
+      
+    } catch (error) {
+      console.error('Multi-source PSN endpoint error:', error);
+      res.status(500).json({ 
+        success: false, 
+        error: error instanceof Error ? error.message : 'Multi-source lookup failed' 
+      });
+    }
+  });
+
   app.post('/api/platform/psn-refresh-token', async (req, res) => {
     try {
       const { npsso, userId = 'default' } = req.body;
