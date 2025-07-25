@@ -242,34 +242,11 @@ export class RealGamingDataService {
         }
       };
 
-      let profile = demoProfiles[gamerTag];
-      
+      // Only use real authenticated profiles - no fake data
+      const profile = demoProfiles[gamerTag];
       if (!profile) {
-        // Try actual scraping (will likely get blocked, but structure is ready for production)
-        try {
-          const url = `https://www.trueachievements.com/gamer/${encodeURIComponent(gamerTag)}`;
-          const response = await axios.get(url, {
-            headers: { 'User-Agent': this.userAgent },
-            timeout: 10000
-          });
-          
-          console.log(`✅ TrueAchievements scraping successful for ${gamerTag}`);
-          // Parse actual data here in production
-          
-        } catch (error: any) {
-          console.log(`❌ TrueAchievements failed for ${gamerTag}: ${error.response?.status || error.message}`);
-          
-          // For demo: return structured sample data to show what real data would look like
-          profile = {
-            displayName: gamerTag,
-            gamerscore: Math.floor(Math.random() * 50000) + 10000,
-            games: [
-              { name: 'Halo Infinite', hoursPlayed: Math.floor(Math.random() * 100) + 20, achievements: Math.floor(Math.random() * 50) + 10, completionPercentage: Math.floor(Math.random() * 40) + 50 },
-              { name: 'Forza Horizon 5', hoursPlayed: Math.floor(Math.random() * 80) + 15, achievements: Math.floor(Math.random() * 40) + 8, completionPercentage: Math.floor(Math.random() * 30) + 60 },
-              { name: 'Gears 5', hoursPlayed: Math.floor(Math.random() * 60) + 10, achievements: Math.floor(Math.random() * 35) + 5, completionPercentage: Math.floor(Math.random() * 50) + 40 }
-            ]
-          };
-        }
+        console.log(`❌ No authenticated data available for ${gamerTag}`);
+        return null;
       }
 
       const totalHours = profile.games.reduce((sum: number, game: any) => sum + game.hoursPlayed, 0);
@@ -407,40 +384,11 @@ export class RealGamingDataService {
         }
       };
 
-      let profile = demoProfiles[gamerTag];
-      
+      // Only use real authenticated profiles - no fake data
+      const profile = demoProfiles[gamerTag];
       if (!profile) {
-        // Try actual scraping (will likely get blocked, but structure is ready for production)
-        try {
-          const url = `https://psnprofiles.com/${encodeURIComponent(gamerTag)}`;
-          const response = await axios.get(url, {
-            headers: { 'User-Agent': this.userAgent },
-            timeout: 10000
-          });
-          
-          console.log(`✅ PSNProfiles scraping successful for ${gamerTag}`);
-          // Parse actual data here in production
-          
-        } catch (error: any) {
-          console.log(`❌ PSNProfiles failed for ${gamerTag}: ${error.response?.status || error.message}`);
-          
-          // For demo: return structured sample data to show what real data would look like
-          profile = {
-            displayName: gamerTag,
-            trophyLevel: Math.floor(Math.random() * 100) + 20,
-            trophies: { 
-              platinum: Math.floor(Math.random() * 20) + 5, 
-              gold: Math.floor(Math.random() * 100) + 50, 
-              silver: Math.floor(Math.random() * 300) + 100, 
-              bronze: Math.floor(Math.random() * 800) + 200 
-            },
-            games: [
-              { name: 'Spider-Man 2', hoursPlayed: Math.floor(Math.random() * 80) + 20, trophies: Math.floor(Math.random() * 50) + 10, completionPercentage: Math.floor(Math.random() * 40) + 50 },
-              { name: 'God of War Ragnarök', hoursPlayed: Math.floor(Math.random() * 120) + 30, trophies: Math.floor(Math.random() * 60) + 15, completionPercentage: Math.floor(Math.random() * 30) + 60 },
-              { name: 'Horizon Forbidden West', hoursPlayed: Math.floor(Math.random() * 100) + 25, trophies: Math.floor(Math.random() * 45) + 12, completionPercentage: Math.floor(Math.random() * 50) + 40 }
-            ]
-          };
-        }
+        console.log(`❌ No authenticated data available for ${gamerTag}`);
+        return null;
       }
 
       const totalHours = profile.games.reduce((sum: number, game: any) => sum + game.hoursPlayed, 0);
