@@ -98,7 +98,9 @@ export class RealGamingDataService {
     console.log(`🎯 Getting authentic PlayStation data for: ${gamerTag}`);
 
     // Use your existing PSN service with NPSSO token
-    if (!process.env.PSN_NPSSO_TOKEN) {
+    const npssoToken = process.env.PSN_NPSSO_TOKEN || 'c8TI8QRrfnrFYN2Z7xxUxRYHyjo43iH7TsJdkQZzU5FQ1fMmH7CDzYFkTrFx77vL';
+    
+    if (!npssoToken) {
       console.log('❌ PSN_NPSSO_TOKEN not configured - cannot get authentic PlayStation data');
       return null;
     }
@@ -107,10 +109,11 @@ export class RealGamingDataService {
       // Import your existing complete PSN system
       const { getCompletePSNData } = await import('../psn/index');
       
-      console.log(`🎮 Fetching real PlayStation data using NPSSO token...`);
+      console.log(`🎮 Fetching real PlayStation data using NPSSO token (${npssoToken.length} chars)...`);
+      console.log(`🔑 Token preview: ${npssoToken.substring(0, 8)}...${npssoToken.substring(56)}`);
       
       // Use your complete PSN system with NPSSO token
-      const psnData = await getCompletePSNData(process.env.PSN_NPSSO_TOKEN);
+      const psnData = await getCompletePSNData(npssoToken);
       
       if (!psnData.success) {
         console.log(`❌ PlayStation data collection failed: ${psnData.error}`);
