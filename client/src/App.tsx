@@ -8,6 +8,7 @@ import PSNTest from "@/pages/psn-test";
 import PSNDashboardPage from "@/pages/psn-dashboard";
 import PSNMultiTestPage from "@/pages/psn-multi-test";
 import RealGamingTestPage from "@/pages/real-gaming-test";
+import SimpleGamingLookup from "@/pages/simple-gaming-lookup";
 import InternalPage from "@/pages/internal";
 import NotFound from "@/pages/not-found";
 
@@ -19,6 +20,7 @@ function Router() {
       <Route path="/psn-dashboard" component={PSNDashboardPage} />
       <Route path="/psn-multi-test" component={PSNMultiTestPage} />
       <Route path="/real-gaming-test" component={RealGamingTestPage} />
+      <Route path="/gaming-lookup" component={SimpleGamingLookup} />
       <Route path="/internal" component={InternalPage} />
       <Route component={NotFound} />
     </Switch>
