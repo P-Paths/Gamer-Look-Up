@@ -12,6 +12,7 @@ import SimpleGamingLookup from "@/pages/simple-gaming-lookup";
 import XboxFriends from "@/pages/xbox-friends";
 import XboxStats from "@/pages/xbox-stats";
 import XboxActivity from "@/pages/xbox-activity";
+import PremiumXboxDashboard from "@/pages/premium-xbox-dashboard";
 import InternalPage from "@/pages/internal";
 import NotFound from "@/pages/not-found";
 
@@ -27,6 +28,7 @@ function Router() {
       <Route path="/xbox-friends" component={XboxFriends} />
       <Route path="/xbox-stats" component={XboxStats} />
       <Route path="/xbox-activity" component={XboxActivity} />
+      <Route path="/premium-xbox" component={PremiumXboxDashboard} />
       <Route path="/internal" component={InternalPage} />
       <Route component={NotFound} />
     </Switch>

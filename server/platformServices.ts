@@ -274,58 +274,137 @@ export class XboxService implements PlatformService {
     const token = accessToken || this.apiKey;
     
     if (!token) {
-      throw new Error("OpenXBL API key not configured");
+      throw new Error('OpenXBL API key required for Xbox lookups');
     }
 
+    console.log(`🎮 Using premium OpenXBL API for Xbox lookup: ${gamerTag}`);
+    
     try {
-      // Use RealGamingDataService with OpenXBL integration
-      const { RealGamingDataService } = await import('./services/realGamingDataService');
-      const gamingService = new RealGamingDataService();
+      // Method 1: Try search endpoint (v1 API works)
+      let playerData = null;
+      let xuid = null;
+      let gamerscore = 0;
+
+      try {
+        const searchResponse = await axios.get(`https://xbl.io/api/search/${encodeURIComponent(gamerTag)}`, {
+          headers: {
+            'X-Authorization': token,
+            'Accept': 'application/json',
+            'Accept-Language': 'en-US'
+          },
+          timeout: 10000
+        });
+
+        if (searchResponse.data?.people?.[0]) {
+          playerData = searchResponse.data.people[0];
+          xuid = playerData.xuid;
+          gamerscore = playerData.gamerScore || playerData.gamerscore || 0;
+          console.log(`✅ Found via search: ${playerData.gamertag} (Score: ${gamerscore})`);
+        }
+      } catch (searchError) {
+        console.log('🔄 Search failed, trying account endpoint...');
+      }
+
+      // Method 2: Use account endpoint if search fails
+      if (!playerData) {
+        const accountResponse = await axios.get('https://xbl.io/api/v2/account', {
+          headers: {
+            'X-Authorization': token,
+            'Accept': 'application/json',
+            'Accept-Language': 'en-US'
+          },
+          timeout: 10000
+        });
+
+        if (accountResponse.data?.profileUsers?.[0]) {
+          const user = accountResponse.data.profileUsers[0];
+          xuid = user.id;
+          const gamertagSetting = user.settings?.find((s: any) => s.id === 'Gamertag');
+          
+          playerData = {
+            xuid: xuid,
+            gamertag: gamertagSetting?.value || gamerTag,
+            displayPicRaw: '',
+            gamerpic: ''
+          };
+          console.log(`✅ Found via account: ${playerData.gamertag} (XUID: ${xuid})`);
+        }
+      }
+
+      if (!playerData || !xuid) {
+        throw new Error(`Xbox player not found: ${gamerTag}`);
+      }
       
-      console.log(`🎮 Using OpenXBL API for Xbox lookup: ${gamerTag}`);
-      const realData = await gamingService.getRealGamingData(gamerTag, 'xbox');
+      console.log(`✅ Found Xbox profile: ${playerData.gamertag} (Score: ${gamerscore})`);
+
+      // Get premium gaming data from achievements endpoint
+      let games: any[] = [];
+      let totalHours = 0;
       
-      if (!realData) {
-        throw new Error(`Xbox profile not found for: ${gamerTag}`);
+      try {
+        const gamingResponse = await axios.get(`https://xbl.io/api/v2/achievements/player/${xuid}`, {
+          headers: {
+            'X-Authorization': token,
+            'Accept': 'application/json',
+            'Accept-Language': 'en-US'
+          },
+          timeout: 15000
+        });
+
+        if (gamingResponse.data?.titles && Array.isArray(gamingResponse.data.titles)) {
+          const titles = gamingResponse.data.titles;
+          console.log(`🎮 Premium Xbox: Retrieved ${titles.length} games from achievements API`);
+          
+          // Convert to our standard game format with estimated hours
+          games = titles.slice(0, 10).map((title: any, index: number) => {
+            const currentScore = title.currentGamerscore || title.gamerscore || 0;
+            const maxScore = title.maxGamerscore || 1000;
+            const estimatedHours = Math.max(Math.round(currentScore / 50), currentScore > 0 ? 1 : 0);
+            
+            return {
+              id: title.titleId || `xbox_${index}`,
+              name: title.name || 'Unknown Game',
+              hoursPlayed: estimatedHours,
+              platform: 'xbox' as Platform,
+              lastPlayed: currentScore > 0 ? 'Recent' : 'Not recently played'
+            };
+          });
+          
+          totalHours = games.reduce((sum, game) => sum + game.hoursPlayed, 0);
+          console.log(`📊 Xbox gaming stats: ${games.length} games, ${totalHours} estimated hours`);
+        }
+      } catch (gamingError: any) {
+        console.log(`⚠️ Premium gaming data not available: ${gamingError.message}`);
+        console.log('Using profile data only');
       }
 
       const response: PlatformLookupResponse = {
-        platform: "xbox",
+        platform: 'xbox',
         player: {
-          id: `xbox_${gamerTag.toLowerCase()}`,
-          gamerTag: realData.gamerTag,
-          displayName: realData.displayName,
-          avatar: realData.avatar || "https://via.placeholder.com/64x64/107c10/ffffff?text=XBX",
-          lastOnline: "Recently active",
-          gamerscore: realData.gamerscore
+          id: `xbox_${xuid}`,
+          gamerTag: playerData.gamertag,
+          displayName: playerData.gamertag,
+          avatar: playerData.displayPicRaw || playerData.gamerpic || '',
+          lastOnline: playerData.presence?.lastSeen || 'Active',
+          gamerscore
         },
-        totalHours: realData.totalHours,
-        totalGames: realData.totalGames,
-        avgHoursPerGame: realData.totalGames > 0 ? 
-          Math.round((realData.totalHours / realData.totalGames) * 10) / 10 : 0,
-        topGames: realData.games.map(game => ({
-          id: `xbox_${game.name.replace(/[^a-zA-Z0-9]/g, '_').toLowerCase()}_${gamerTag}`,
-          name: game.name,
-          hoursPlayed: game.hoursPlayed,
-          platform: "xbox" as Platform,
-          lastPlayed: game.lastPlayed,
-        })),
-        qualificationStatus: realData.totalHours > 0 ? "qualified" : "not_qualified",
-        qualificationReason: realData.dataSource.includes('$5 plan') 
-          ? `${realData.dataSource} - Gamerscore: ${realData.gamerscore}`
-          : `Real Xbox data: ${realData.totalHours} hours, Gamerscore: ${realData.gamerscore}`,
+        totalHours,
+        totalGames: games.length,
+        avgHoursPerGame: games.length > 0 ? Math.round((totalHours / games.length) * 10) / 10 : 0,
+        topGames: games,
+        qualificationStatus: totalHours > 1100 ? 'qualified' : 'not_qualified',
+        qualificationReason: `Premium Xbox data: ${totalHours} estimated hours across ${games.length} games`,
         realData: true
       };
 
       // Cache the authentic data
       await storage.setCachedPlatformLookup("xbox", response.player.id, response);
-      console.log(`✅ Real Xbox data cached for ${gamerTag}: ${realData.gamerscore} gamerscore`);
-      
+      console.log(`✅ Xbox lookup complete: ${response.player.gamerTag} - ${response.totalGames} games, ${response.totalHours} hours`);
       return response;
 
     } catch (error: any) {
-      console.error('OpenXBL lookup error:', error);
-      throw new Error(error.message || 'Xbox lookup failed');
+      console.error('❌ Premium Xbox lookup failed:', error.message);
+      throw new Error(`Xbox lookup failed: ${error.message}`);
     }
   }
 

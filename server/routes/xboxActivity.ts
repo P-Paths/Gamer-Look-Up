@@ -131,4 +131,22 @@ router.get('/api/xbox/gaming-check/:xuid', async (req, res) => {
   }
 });
 
+// Get Xbox gaming data using premium achievements endpoint
+router.get('/api/xbox/gaming-data/:xuid', async (req, res) => {
+  try {
+    const { xuid } = req.params;
+    console.log(`🎮 Fetching Xbox gaming data for XUID: ${xuid}`);
+    
+    const gamingData = await gamingService.getGamingData(xuid);
+    res.json(gamingData);
+  } catch (error: any) {
+    console.error('❌ Xbox gaming data error:', error.message);
+    res.status(500).json({ 
+      error: 'Failed to fetch Xbox gaming data',
+      message: error.message,
+      premium: true
+    });
+  }
+});
+
 export default router;
