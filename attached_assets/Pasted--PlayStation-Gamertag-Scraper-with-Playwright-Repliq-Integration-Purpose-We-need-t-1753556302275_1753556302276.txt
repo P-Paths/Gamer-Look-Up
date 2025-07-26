@@ -1,0 +1,119 @@
+---
+
+# 🎮 PlayStation Gamertag Scraper with Playwright (Repliq Integration)
+
+## ✅ Purpose
+
+We need to build a browser automation system using **Playwright or Puppeteer**, deployed via **Repliq**, to scrape real gameplay hours from **PlayStation user profiles**.
+
+This will be used in our dashboard to provide **authentic playtime evidence** for parents/legal reps submitting claims.
+
+---
+
+## 🎯 Mission Brief: What Repliq Needs to Build
+
+> "Log into a PlayStation account via browser automation, navigate to a user’s gamertag profile, and extract real hours played from the Recently Played section. Output structured JSON with game title, playtime, and trophy data."
+
+### 🔐 Step-by-Step Flow
+
+1. **Login to PlayStation**
+
+   * URL: `https://my.playstation.com`
+   * Login using **stored session cookies** or **credentials + 2FA**
+
+2. **Navigate to User Profile**
+
+   * Dynamic URL: `https://my.playstation.com/profile/{gamertag}`
+   * Example: `https://my.playstation.com/profile/WonderCheeseBread`
+
+3. **Scrape Data from "Recently Played" Section**
+
+   * Extract:
+
+     * Game title
+     * Hours played (e.g. "786h")
+     * Trophies (platinum, gold, silver, bronze)
+
+4. **Output JSON** for each scanned profile:
+
+```json
+{
+  "gamerTag": "WonderCheeseBread",
+  "games": [
+    {
+      "title": "Nioh 2",
+      "hoursPlayed": 786,
+      "trophies": {
+        "platinum": 0,
+        "gold": 1,
+        "silver": 3,
+        "bronze": 49
+      }
+    },
+    {
+      "title": "God of War Ragnarök",
+      "hoursPlayed": 142,
+      "trophies": {
+        "platinum": 0,
+        "gold": 0,
+        "silver": 0,
+        "bronze": 0
+      }
+    }
+  ]
+}
+```
+
+---
+
+## ⚙️ Technical Notes
+
+* Use **Playwright** (preferred) or **Puppeteer**
+* Emulate **mobile viewport** (more consistent display of hours)
+* Detect and handle **2FA or CAPTCHA**
+* Accept login via:
+
+  * Stored cookies/session token (ideal)
+  * Manual 2FA during first run (optional fallback)
+* **Headless mode** supported for automation, but debug mode needed for testing
+* Optionally wrap as **Repliq webhook** to be triggered by our frontend/dashboard
+
+---
+
+## 📌 Why This Is Critical
+
+PlayStation **does expose real playtime** on their frontend — we’ve confirmed this manually. This script will allow:
+
+* Legal reps to validate claims
+* Agents to streamline lead processing
+* Dashboards to display verified data
+
+Unlike Xbox, PlayStation **does not block access** to this frontend data (as of now), so we need to lock in this capability.
+
+---
+
+## 🧪 Next Steps for Repliq
+
+* ✅ Assign an engineer to build this logic using Playwright
+* ✅ Verify scrape reliability on both desktop and mobile views
+* ✅ Return working JSON to us for integration into frontend
+
+---
+
+## 👨‍👩‍👧 Intended Use
+
+* For Real Time Solutions (RTS) legal intake dashboards
+* Streamline evidence capture for **Video Game Addiction Lawsuit Funnel**
+* Gamertag inputs from parents → Real data pulled → Claims supported
+
+---
+
+## ✅ Final Notes
+
+* We are prioritizing **PlayStation** right now
+* Xbox will follow once working PSN scraper is done
+* This script must be secure, stable, and ready for demo
+
+---
+
+Let us know if you need cookies, a dev account, or gamertags to test with.

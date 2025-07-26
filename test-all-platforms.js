@@ -13,13 +13,19 @@ const platforms = [
     name: 'Steam', 
     gamerTag: 'gaben',  // Use a known working Steam profile
     platform: 'steam',
-    expected: 'Should return real Steam games and hours'
+    expected: 'Should return real Steam games and hours (may be private)'
   },
   { 
     name: 'Xbox (OpenXBL)', 
     gamerTag: 'Wonder Bread326', 
     platform: 'xbox',
     expected: 'Should return real games but 0 hours (Xbox limitation)'
+  },
+  {
+    name: 'PlayStation (Browser Scraping)',
+    gamerTag: 'WonderCheeseBread',
+    platform: 'playstation',
+    expected: 'Should return real scraped playtime hours from PlayStation profile'
   }
 ];
 
