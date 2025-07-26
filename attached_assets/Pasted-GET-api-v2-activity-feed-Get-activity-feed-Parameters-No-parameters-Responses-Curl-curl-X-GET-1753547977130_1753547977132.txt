@@ -1,0 +1,203 @@
+GET
+/api/v2/activity/feed
+Get activity feed.
+
+Parameters
+No parameters
+
+Responses
+Curl
+
+curl -X 'GET' \
+'https://xbl.io/api/v2/activity/feed' \
+-H 'accept: */*'
+Request URL
+https://xbl.io/api/v2/activity/feed
+Server response
+Code	Details
+401
+Undocumented
+Error: response status is 401
+
+Response body
+Download
+{
+  "error": "X-Authorization header missing"
+}
+Response headers
+ alt-svc: h3=":443"; ma=86400 
+ cache-control: no-store,max-age=0,no-cache 
+ cf-cache-status: DYNAMIC 
+ cf-ray: 96555376bb32e178-ORD 
+ content-type: application/json; charset=UTF-8 
+ date: Sat,26 Jul 2025 16:38:12 GMT 
+ nel: {"success_fraction":0,"report_to":"cf-nel","max_age":604800} 
+ report-to: {"endpoints":[{"url":"https:\/\/a.nel.cloudflare.com\/report\/v4?s=eVSJXtvYiUedQVCVB1aHjcDSqPTmCMgTzjcThp4PMmUn8Wk370tgWGsUWdQ8opQqTEIohla%2FJh3A546H6xkbDu%2BhyDLwbyMzbSmQ8RoBQT6%2BaflOkxpE5bo%3D"}],"group":"cf-nel","max_age":604800} 
+ server: cloudflare 
+ server-timing: cfL4;desc="?proto=QUIC&rtt=22225&min_rtt=17969&rtt_var=4326&sent=12&recv=11&lost=0&retrans=0&sent_bytes=4810&recv_bytes=4666&delivery_rate=439524&ss_exit_cwnd=0&ss_exit_reason=0&cwnd=16730&unsent_bytes=0&cid=51d0631e1845aa8a&ts=189&inflight_dur=114&x=103" 
+ vary: User-Agent 
+ x-powered-by: PHP/8.1.27 
+Responses
+Code	Description	Links
+200	
+Success
+
+No links
+
+POST
+/api/v2/activity/feed
+Post to activity feed.
+
+Parameters
+No parameters
+
+Request body
+
+application/json
+{
+  "message": "I am trying out OpenXBL!"
+}
+Responses
+Curl
+
+curl -X 'POST' \
+'https://xbl.io/api/v2/activity/feed' \
+-H 'accept: */*' \
+-H 'Content-Type: application/json' \
+-d '{
+"message": "I am trying out OpenXBL!"
+}'
+Request URL
+https://xbl.io/api/v2/activity/feed
+Server response
+Code	Details
+401
+Undocumented
+Error: response status is 401
+
+Response body
+Download
+{
+  "error": "X-Authorization header missing"
+}
+Response headers
+ alt-svc: h3=":443"; ma=86400 
+ cache-control: no-store,max-age=0,no-cache 
+ cf-cache-status: DYNAMIC 
+ cf-ray: 965554762e61e178-ORD 
+ content-type: application/json; charset=UTF-8 
+ date: Sat,26 Jul 2025 16:38:53 GMT 
+ nel: {"success_fraction":0,"report_to":"cf-nel","max_age":604800} 
+ report-to: {"endpoints":[{"url":"https:\/\/a.nel.cloudflare.com\/report\/v4?s=Jpm88GIuZoeS3gHvd32PTjOTiLGW5pR3%2BEXNOCQXxLiDDoxIQLDjzE4Q0dG4Wnnr4WRvTJFSjxKddt1tpsZUzYkCr0QBjcoLH5S%2BvjLcIMVY%2FUc5U3yGlK0%3D"}],"group":"cf-nel","max_age":604800} 
+ server: cloudflare 
+ server-timing: cfL4;desc="?proto=QUIC&rtt=20888&min_rtt=17300&rtt_var=3243&sent=27&recv=21&lost=0&retrans=0&sent_bytes=8696&recv_bytes=7770&delivery_rate=439524&ss_exit_cwnd=0&ss_exit_reason=0&cwnd=20501&unsent_bytes=0&cid=51d0631e1845aa8a&ts=40990&inflight_dur=274&x=103" 
+ vary: User-Agent 
+ x-powered-by: PHP/8.1.27 
+Responses
+Code	Description	Links
+200	
+Success
+
+No links
+
+GET
+/api/v2/activity/history
+Get activity history.
+
+Parameters
+No parameters
+
+Responses
+Curl
+
+curl -X 'GET' \
+'https://xbl.io/api/v2/activity/history' \
+-H 'accept: */*'
+Request URL
+https://xbl.io/api/v2/activity/history
+Server response
+Code	Details
+401
+Undocumented
+Error: response status is 401
+
+Response body
+Download
+{
+  "error": "X-Authorization header missing"
+}
+Response headers
+ alt-svc: h3=":443"; ma=86400 
+ cache-control: no-store,max-age=0,no-cache 
+ cf-cache-status: DYNAMIC 
+ cf-ray: 965554450d9ae178-ORD 
+ content-type: application/json; charset=UTF-8 
+ date: Sat,26 Jul 2025 16:38:45 GMT 
+ nel: {"success_fraction":0,"report_to":"cf-nel","max_age":604800} 
+ report-to: {"endpoints":[{"url":"https:\/\/a.nel.cloudflare.com\/report\/v4?s=F2JXnt6NoKtuhrYQB7WaUl%2BF%2FH1EWQFjoaxmDpKd0eeAf9QgkZL57Gp5AAg2fr4OmxBuMJxOZWCZA1XoRzlGmqdBIg6FWMozR1gLPbNBoU%2BUtSA6JJ5hEiA%3D"}],"group":"cf-nel","max_age":604800} 
+ server: cloudflare 
+ server-timing: cfL4;desc="?proto=QUIC&rtt=20880&min_rtt=17300&rtt_var=3885&sent=21&recv=17&lost=0&retrans=0&sent_bytes=7158&recv_bytes=6528&delivery_rate=439524&ss_exit_cwnd=0&ss_exit_reason=0&cwnd=19009&unsent_bytes=0&cid=51d0631e1845aa8a&ts=33137&inflight_dur=205&x=103" 
+ vary: User-Agent 
+ x-powered-by: PHP/8.1.27 
+Responses
+Code	Description	Links
+200	
+Success
+
+No links
+
+POST
+/api/v2/activity/share
+Creates a shareable link.
+
+Parameters
+No parameters
+
+Request body
+
+application/json
+{
+  "locator": "gameclipsmetadata.xboxlive.com/users/xuid(2533274798129181)/scids/00000000-0000-0000-0000-000000000000/clips/2f2773a3-2588-4208-99ef-ee3a33a827fa"
+}
+Responses
+Curl
+
+curl -X 'POST' \
+'https://xbl.io/api/v2/activity/share' \
+-H 'accept: */*' \
+-H 'Content-Type: application/json' \
+-d '{
+"locator": "gameclipsmetadata.xboxlive.com/users/xuid(2533274798129181)/scids/00000000-0000-0000-0000-000000000000/clips/2f2773a3-2588-4208-99ef-ee3a33a827fa"
+}'
+Request URL
+https://xbl.io/api/v2/activity/share
+Server response
+Code	Details
+401
+Undocumented
+Error: response status is 401
+
+Response body
+Download
+{
+  "error": "X-Authorization header missing"
+}
+Response headers
+ alt-svc: h3=":443"; ma=86400 
+ cache-control: no-store,max-age=0,no-cache 
+ cf-cache-status: DYNAMIC 
+ cf-ray: 9655541a3cffe178-ORD 
+ content-type: application/json; charset=UTF-8 
+ date: Sat,26 Jul 2025 16:38:38 GMT 
+ nel: {"success_fraction":0,"report_to":"cf-nel","max_age":604800} 
+ report-to: {"endpoints":[{"url":"https:\/\/a.nel.cloudflare.com\/report\/v4?s=da%2FwViDWYA1vGpu%2FhcBRum0z%2FoSXV9%2By%2FIgoSLXnZRNIKZ%2BzNrMdrpjLDZfGeVEawf8vnVsxqCd0JWpubZKCqsrM%2BnckD89A6f1g3fVauT6O3VWM6B371ZQ%3D"}],"group":"cf-nel","max_age":604800} 
+ server: cloudflare 
+ server-timing: cfL4;desc="?proto=QUIC&rtt=21830&min_rtt=17969&rtt_var=4033&sent=15&recv=13&lost=0&retrans=0&sent_bytes=5612&recv_bytes=5410&delivery_rate=439524&ss_exit_cwnd=0&ss_exit_reason=0&cwnd=17509&unsent_bytes=0&cid=51d0631e1845aa8a&ts=26322&inflight_dur=145&x=103" 
+ vary: User-Agent 
+ x-powered-by: PHP/8.1.27 
+Responses
+Code	Description	Links
+200	
+Success
+
+No links
