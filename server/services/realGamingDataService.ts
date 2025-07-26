@@ -92,22 +92,43 @@ export class RealGamingDataService {
   }
 
   /**
-   * Get PlayStation data using PSNProfiles scraping
+   * Get PlayStation data using your existing PSN service
    */
   private async getPlayStationData(gamerTag: string): Promise<RealGamingProfile | null> {
-    console.log(`🎯 Trying PlayStation data sources for: ${gamerTag}`);
+    console.log(`🎯 Getting authentic PlayStation data for: ${gamerTag}`);
 
+    // Use your existing PSN service that's already built
     try {
-      const psnData = await this.getPSNProfilesData(gamerTag);
+      const psnService = await import('../psn/index');
+      const psnData = await psnService.getProfile(gamerTag);
+      
       if (psnData) {
-        console.log('✅ Got PlayStation data from PSNProfiles scraping');
-        return psnData;
+        // Convert PSN data to our standard format
+        return {
+          platform: 'playstation',
+          gamerTag: gamerTag,
+          displayName: psnData.displayName || gamerTag,
+          trophyLevel: psnData.trophyLevel,
+          totalTrophies: psnData.totalTrophies,
+          totalGames: psnData.games?.length || 0,
+          totalHours: psnData.games?.reduce((sum: number, game: any) => sum + (game.hoursPlayed || 0), 0) || 0,
+          games: psnData.games?.map((game: any) => ({
+            name: game.name,
+            hoursPlayed: game.hoursPlayed || 0,
+            completionPercentage: game.completionPercentage || 0,
+            lastPlayed: game.lastPlayed || new Date().toISOString()
+          })) || [],
+          trophies: psnData.trophies,
+          avatar: psnData.avatar,
+          dataSource: 'psn_api_real',
+          lastUpdated: new Date().toISOString()
+        };
       }
     } catch (error) {
-      console.log('❌ PSNProfiles scraping failed:', error);
+      console.log('❌ PSN service failed:', error);
     }
 
-    console.log('❌ All PlayStation data sources failed');
+    console.log('❌ PlayStation data not available');
     return null;
   }
 
