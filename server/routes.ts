@@ -651,6 +651,58 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Steam real data endpoint  
+  app.post("/api/steam/real-data", async (req, res) => {
+    try {
+      const { gamerTag } = req.body;
+
+      if (!gamerTag) {
+        return res.status(400).json({
+          success: false,
+          error: 'Gamer tag is required'
+        });
+      }
+
+      console.log(`🎮 Real Steam data request for: ${gamerTag}`);
+      
+      if (!steamService) {
+        return res.status(500).json({
+          success: false,
+          error: 'Steam service not available'
+        });
+      }
+      
+      const data = await steamService.getRealSteamProfile(gamerTag);
+      
+      if (data) {
+        res.json({
+          success: true,
+          platform: 'steam',
+          data,
+          realData: true,
+          dataSource: data.dataSource,
+          timestamp: new Date().toISOString()
+        });
+      } else {
+        res.status(404).json({
+          success: false,
+          error: `No Steam data found for "${gamerTag}". The profile may be private or the username doesn't exist.`,
+          suggestions: [
+            'Check if the Steam username is spelled correctly',
+            'Ensure the Steam profile is set to public',
+            'Try using the Steam ID instead of username'
+          ]
+        });
+      }
+    } catch (error) {
+      console.error('Steam real data error:', error);
+      res.status(500).json({
+        success: false,
+        error: 'Failed to fetch Steam data'
+      });
+    }
+  });
+
   // Get platform connection status
   app.get("/api/platform/status", async (req, res) => {
     const status = {

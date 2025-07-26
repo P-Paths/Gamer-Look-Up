@@ -61,16 +61,18 @@ export default function SimpleGamingLookup() {
           throw new Error("Invalid platform selected");
       }
 
-      const response = await apiRequest(endpoint, {
+      const response = await fetch(endpoint, {
         method: "POST",
         body: JSON.stringify({ gamerTag: gamerTag.trim() }),
         headers: { "Content-Type": "application/json" }
       });
 
-      if (response.success) {
-        setResult(response.data);
+      const data = await response.json();
+
+      if (data.success) {
+        setResult(data.data);
       } else {
-        setError(response.error || "Failed to fetch gaming data");
+        setError(data.error || "Failed to fetch gaming data");
       }
     } catch (err: any) {
       setError(err.message || "An error occurred while fetching data");
