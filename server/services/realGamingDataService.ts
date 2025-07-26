@@ -188,17 +188,46 @@ export class RealGamingDataService {
       }
 
       const player = profileResponse.data.people[0];
-      console.log(`✅ Found Xbox profile: ${player.gamertag} (Score: ${player.gamerScore})`)
+      console.log(`✅ Found Xbox profile: ${player.gamertag} (Score: ${player.gamerScore})`);
 
-      // Return authentic Xbox profile data from OpenXBL API
+      // Try to get games data from OpenXBL (may be limited on free tier)
+      let gamesData = [];
+      let totalHours = 0;
+      
+      try {
+        console.log(`🎮 Attempting to fetch games for ${player.gamertag}...`);
+        const gamesResponse = await axios.get(`https://xbl.io/api/v2/games/${encodeURIComponent(player.gamertag)}`, {
+          headers: {
+            'X-Authorization': API_KEY,
+            'Accept': 'application/json'
+          },
+          timeout: 10000
+        });
+
+        if (gamesResponse.data?.games) {
+          gamesData = gamesResponse.data.games.slice(0, 10).map((game: any) => ({
+            name: game.name,
+            hoursPlayed: Math.round((game.playTime || 0) / 60) || 0,
+            achievements: game.currentAchievements || 0,
+            completionPercentage: Math.round((game.currentAchievements / Math.max(game.maxAchievements, 1)) * 100) || 0,
+            lastPlayed: game.lastUnlock || new Date().toISOString()
+          }));
+          totalHours = gamesData.reduce((sum: number, game: any) => sum + game.hoursPlayed, 0);
+          console.log(`✅ Retrieved ${gamesData.length} games with ${totalHours} total hours`);
+        }
+      } catch (gamesError: any) {
+        console.log(`⚠️ Games data not available on free tier - upgrade to OpenXBL paid plan for full games data`);
+      }
+
+      // Return authentic Xbox data (profile + games if available)
       return {
         platform: 'xbox',
         gamerTag: player.gamertag,
         displayName: player.gamertag,
         gamerscore: parseInt(player.gamerScore) || 0,
-        totalGames: 0, // OpenXBL free tier doesn't include games data
-        totalHours: 0, // OpenXBL free tier doesn't include playtime data
-        games: [], // Would need OpenXBL paid tier for games list
+        totalGames: gamesData.length,
+        totalHours,
+        games: gamesData,
         achievements: {
           total: 0,
           unlocked: 0,
