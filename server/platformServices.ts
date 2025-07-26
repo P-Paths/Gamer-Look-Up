@@ -355,22 +355,20 @@ export class XboxService implements PlatformService {
           const titles = gamingResponse.data.titles;
           console.log(`🎮 Premium Xbox: Retrieved ${titles.length} games from achievements API`);
           
-          // Convert to our standard game format with estimated hours
-          games = titles.slice(0, 10).map((title: any, index: number) => {
-            const currentScore = title.currentGamerscore || title.gamerscore || 0;
-            const maxScore = title.maxGamerscore || 1000;
-            const estimatedHours = Math.max(Math.round(currentScore / 50), currentScore > 0 ? 1 : 0);
-            
-            return {
-              id: title.titleId || `xbox_${index}`,
-              name: title.name || 'Unknown Game',
-              hoursPlayed: estimatedHours,
-              platform: 'xbox' as Platform,
-              lastPlayed: currentScore > 0 ? 'Recent' : 'Not recently played'
-            };
-          });
+          // Use the enhanced Xbox gaming service for proper hours calculation
+          const { XboxGamingService } = await import('./services/xboxGamingService');
+          const gamingService = new XboxGamingService();
+          const gamingData = await gamingService.parseAchievementGamingData(gamingResponse.data, xuid);
           
-          totalHours = games.reduce((sum, game) => sum + game.hoursPlayed, 0);
+          games = gamingData.games.slice(0, 10).map((game: any) => ({
+            id: game.id,
+            name: game.name,
+            hoursPlayed: game.hoursPlayed,
+            platform: 'xbox' as Platform,
+            lastPlayed: game.lastPlayed !== 'Unknown' ? game.lastPlayed : 'Available in library'
+          }));
+          
+          totalHours = gamingData.player.totalHours;
           console.log(`📊 Xbox gaming stats: ${games.length} games, ${totalHours} estimated hours`);
         }
       } catch (gamingError: any) {
