@@ -67,47 +67,27 @@ export class RealGamingDataService {
   }
 
   /**
-   * Get Xbox data using multiple proven methods
+   * Get Xbox data using ONLY official API - no web scraping fallbacks
    */
   private async getXboxData(gamerTag: string): Promise<RealGamingProfile | null> {
-    console.log(`🎯 Trying Xbox data sources for: ${gamerTag}`);
+    console.log(`🎯 Getting authentic Xbox data for: ${gamerTag}`);
 
-    // Try OpenXBL API first (if available)
-    if (process.env.OPENXBL_API_KEY) {
-      try {
-        const openXBLData = await this.getOpenXBLData(gamerTag);
-        if (openXBLData) {
-          console.log('✅ Got Xbox data from OpenXBL API');
-          return openXBLData;
-        }
-      } catch (error) {
-        console.log('❌ OpenXBL API failed, trying scraping...');
-      }
+    if (!process.env.OPENXBL_API_KEY) {
+      console.log('❌ OPENXBL_API_KEY not configured - cannot get authentic Xbox data');
+      return null;
     }
 
-    // Try TrueAchievements scraping
     try {
-      const taData = await this.getTrueAchievementsData(gamerTag);
-      if (taData) {
-        console.log('✅ Got Xbox data from TrueAchievements scraping');
-        return taData;
+      const openXBLData = await this.getOpenXBLData(gamerTag);
+      if (openXBLData) {
+        console.log('✅ Got authentic Xbox data from OpenXBL API');
+        return openXBLData;
       }
     } catch (error) {
-      console.log('❌ TrueAchievements scraping failed');
+      console.error('❌ Xbox API error:', error);
     }
 
-    // Try XboxGamertag.com scraping as final fallback
-    try {
-      const xgtData = await this.getXboxGamertagData(gamerTag);
-      if (xgtData) {
-        console.log('✅ Got Xbox data from XboxGamertag.com scraping');
-        return xgtData;
-      }
-    } catch (error) {
-      console.log('❌ XboxGamertag.com scraping failed');
-    }
-
-    console.log('❌ All Xbox data sources failed');
+    console.log('❌ Xbox profile not found or not accessible');
     return null;
   }
 
@@ -144,8 +124,8 @@ export class RealGamingDataService {
     try {
       console.log(`🎮 Fetching real Xbox data from OpenXBL API for: ${gamerTag}`);
 
-      // Get player profile
-      const profileResponse = await axios.get(`https://xbl.io/api/v2/friends/search?gt=${encodeURIComponent(gamerTag)}`, {
+      // Get player profile using correct OpenXBL endpoint
+      const profileResponse = await axios.get(`https://xbl.io/api/v2/search/${encodeURIComponent(gamerTag)}`, {
         headers: {
           'X-Authorization': API_KEY,
           'Accept': 'application/json'
@@ -159,54 +139,22 @@ export class RealGamingDataService {
       }
 
       const player = profileResponse.data.people[0];
-      console.log(`✅ Found Xbox profile: ${player.displayName || player.gamertag}`);
+      console.log(`✅ Found Xbox profile: ${player.gamertag} (Score: ${player.gamerScore})`)
 
-      // Get current presence/activity
-      const presenceResponse = await axios.get(`https://xbl.io/api/v2/player/${player.xuid}/presence`, {
-        headers: {
-          'X-Authorization': API_KEY,
-          'Accept': 'application/json'
-        }
-      }).catch(() => null);
-
-      // Get recent games with playtime data
-      const gamesResponse = await axios.get(`https://xbl.io/api/v2/player/${player.xuid}/games`, {
-        headers: {
-          'X-Authorization': API_KEY,
-          'Accept': 'application/json'
-        }
-      });
-
-      const gamesData = gamesResponse.data?.titles || [];
-      console.log(`✅ Retrieved ${gamesData.length} games for ${gamerTag}`);
-
-      // Process games to get ONLY the data requested: hours, play times, last activity
-      const games = gamesData.map((game: any) => {
-        // Extract playtime in hours (convert from minutes)
-        const minutesPlayed = game.stats?.find((s: any) => s.name === 'MinutesPlayed')?.value || 0;
-        const hoursPlayed = Math.round(minutesPlayed / 60);
-        
-        return {
-          name: game.name,
-          hoursPlayed, // Real hours from Xbox Live
-          lastPlayed: game.lastTimePlayed ? new Date(game.lastTimePlayed).toISOString() : null, // Real last played time
-          isCurrentlyPlaying: presenceResponse?.data?.state === 'Online' && presenceResponse?.data?.primaryTitle === game.name
-        };
-      }).filter(game => game.hoursPlayed > 0) // Only show games actually played
-        .sort((a, b) => new Date(b.lastPlayed || 0).getTime() - new Date(a.lastPlayed || 0).getTime()); // Sort by most recent
-
-      const totalHours = games.reduce((sum, game) => sum + game.hoursPlayed, 0);
-
+      // Return authentic Xbox profile data from OpenXBL API
       return {
         platform: 'xbox',
         gamerTag: player.gamertag,
-        displayName: player.displayName || player.gamertag,
-        totalGames: games.length,
-        totalHours,
-        games,
-        lastOnline: presenceResponse?.data?.lastSeen ? new Date(presenceResponse.data.lastSeen).toISOString() : null,
-        currentActivity: presenceResponse?.data?.state === 'Online' ? presenceResponse.data.primaryTitle : null,
-        isOnline: presenceResponse?.data?.state === 'Online',
+        displayName: player.gamertag,
+        gamerscore: parseInt(player.gamerScore) || 0,
+        totalGames: 0, // OpenXBL free tier doesn't include games data
+        totalHours: 0, // OpenXBL free tier doesn't include playtime data
+        games: [], // Would need OpenXBL paid tier for games list
+        achievements: {
+          total: 0,
+          unlocked: 0,
+          gamerscore: parseInt(player.gamerScore) || 0
+        },
         avatar: player.displayPicRaw,
         dataSource: 'openxbl_api_real',
         lastUpdated: new Date().toISOString()
