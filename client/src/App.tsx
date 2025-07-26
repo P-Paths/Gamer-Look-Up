@@ -14,6 +14,7 @@ import XboxStats from "@/pages/xbox-stats";
 import XboxActivity from "@/pages/xbox-activity";
 import PremiumXboxDashboard from "@/pages/premium-xbox-dashboard";
 import InternalPage from "@/pages/internal";
+import TestDashboard from "@/pages/test-dashboard";
 import NotFound from "@/pages/not-found";
 
 function Router() {
@@ -29,6 +30,7 @@ function Router() {
       <Route path="/xbox-stats" component={XboxStats} />
       <Route path="/xbox-activity" component={XboxActivity} />
       <Route path="/premium-xbox" component={PremiumXboxDashboard} />
+      <Route path="/test" component={TestDashboard} />
       <Route path="/internal" component={InternalPage} />
       <Route component={NotFound} />
     </Switch>
