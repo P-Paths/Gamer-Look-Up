@@ -190,82 +190,30 @@ export class RealGamingDataService {
       const player = profileResponse.data.people[0];
       console.log(`✅ Found Xbox profile: ${player.gamertag} (Score: ${player.gamerScore})`);
 
-      // Try to get games data from OpenXBL (may be limited on free tier)
-      let gamesData = [];
-      let totalHours = 0;
+      // Based on testing: $5 subscription covers social features but NOT games data
+      console.log(`📋 $5 OpenXBL subscription covers: Profile ✅, Friends ✅, Search ✅`);
+      console.log(`📋 $5 OpenXBL subscription missing: Games data ❌, Achievements ❌`);
       
-      try {
-        console.log(`🎮 Attempting to fetch games for ${player.gamertag}...`);
-        console.log(`🔑 Using API key (first 8 chars): ${API_KEY.substring(0, 8)}...`);
-        
-        // Try multiple endpoints to find games data
-        const endpoints = [
-          `/api/v2/player/${player.xuid}/titles`,
-          `/api/v2/games/${encodeURIComponent(player.gamertag)}`,
-          `/api/v2/account/${player.xuid}/games`,
-          `/api/v2/recent-games/${player.xuid}`
-        ];
+      let gamesData: any[] = [];
+      let totalHours = 0;
+      let subscriptionStatus = '$5 plan - Profile data available, games data requires upgrade';
 
-        for (const endpoint of endpoints) {
-          try {
-            console.log(`🎯 Trying endpoint: ${endpoint}`);
-            const gamesResponse = await axios.get(`https://xbl.io${endpoint}`, {
-              headers: {
-                'X-Authorization': API_KEY,
-                'Accept': 'application/json'
-              },
-              timeout: 10000
-            });
-
-            console.log(`📊 Response status: ${gamesResponse.status}`);
-            console.log(`📊 Response headers rate limit: ${gamesResponse.headers['x-ratelimit-remaining']}`);
-            
-            if (gamesResponse.data) {
-              console.log(`📊 Response data keys:`, Object.keys(gamesResponse.data));
-              
-              // Check for games in various response formats
-              const games = gamesResponse.data.games || gamesResponse.data.titles || gamesResponse.data;
-              if (Array.isArray(games) && games.length > 0) {
-                gamesData = games.slice(0, 10).map((game: any) => ({
-                  name: game.name || game.title || game.titleName,
-                  hoursPlayed: Math.round((game.playTime || game.playtime || 0) / 60) || 0,
-                  achievements: game.currentAchievements || game.achievements || 0,
-                  completionPercentage: game.completion || Math.round((game.currentAchievements / Math.max(game.maxAchievements, 1)) * 100) || 0,
-                  lastPlayed: game.lastUnlock || game.lastPlayed || new Date().toISOString()
-                }));
-                totalHours = gamesData.reduce((sum: number, game: any) => sum + game.hoursPlayed, 0);
-                console.log(`✅ Retrieved ${gamesData.length} games with ${totalHours} total hours from ${endpoint}`);
-                break;
-              }
-            }
-          } catch (endpointError: any) {
-            console.log(`❌ Endpoint ${endpoint} failed: ${endpointError.response?.status} - ${endpointError.message}`);
-          }
-        }
-
-        if (gamesData.length === 0) {
-          console.log(`⚠️ No games data found - checking if your $5 subscription covers games endpoints`);
-        }
-      } catch (gamesError: any) {
-        console.log(`❌ Games data fetch failed: ${gamesError.response?.status} - ${gamesError.message}`);
-      }
-
-      // Return authentic Xbox data (profile + games if available)
+      // Return authentic Xbox profile data (with clear subscription status)
       return {
         platform: 'xbox',
         gamerTag: player.gamertag,
         displayName: player.gamertag,
         gamerscore: parseInt(player.gamerScore) || 0,
-        totalGames: gamesData.length,
-        totalHours,
-        games: gamesData,
+        totalGames: 0, // Not available on $5 plan
+        totalHours: 0, // Not available on $5 plan  
+        games: [], // Not available on $5 plan
         achievements: {
           total: 0,
           unlocked: 0,
           gamerscore: parseInt(player.gamerScore) || 0
         },
         avatar: player.displayPicRaw,
-        dataSource: 'openxbl_api_real',
+        dataSource: subscriptionStatus,
         lastUpdated: new Date().toISOString()
       };
 

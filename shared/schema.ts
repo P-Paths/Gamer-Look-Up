@@ -156,6 +156,7 @@ export const platformLookupResponseSchema = z.object({
     displayName: z.string(),
     avatar: z.string(),
     lastOnline: z.string(),
+    gamerscore: z.number().optional(),
   }),
   totalHours: z.number(),
   totalGames: z.number(),

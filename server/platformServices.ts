@@ -260,7 +260,7 @@ export class XboxService implements PlatformService {
   private apiKey: string;
 
   constructor() {
-    this.apiKey = process.env.XBOXAPI_KEY || "";
+    this.apiKey = process.env.OPENXBL_API_KEY || "";
   }
 
   async authenticate(authCode: string): Promise<{ accessToken: string; refreshToken?: string; expiresAt?: Date }> {
@@ -274,177 +274,58 @@ export class XboxService implements PlatformService {
     const token = accessToken || this.apiKey;
     
     if (!token) {
-      // For demo purposes, return sample Xbox data
-      // Real implementation would require XboxAPI.com key or official Xbox Live API access
-      const response: PlatformLookupResponse = {
-        platform: "xbox",
-        player: {
-          id: `xbox_${gamerTag.toLowerCase()}`,
-          gamerTag: gamerTag,
-          displayName: gamerTag,
-          avatar: "https://via.placeholder.com/64x64/107c10/ffffff?text=XBX",
-          lastOnline: "5 minutes ago",
-        },
-        totalHours: 1243,
-        totalGames: 18,
-        avgHoursPerGame: 69.1,
-        topGames: [
-          {
-            id: "xbox_halo",
-            name: "Halo Infinite",
-            hoursPlayed: 234,
-            platform: "xbox",
-            lastPlayed: "2025-01-24T20:15:00Z",
-          },
-          {
-            id: "xbox_forza",
-            name: "Forza Horizon 5",
-            hoursPlayed: 189,
-            platform: "xbox",
-            lastPlayed: "2025-01-24T16:30:00Z",
-          },
-          {
-            id: "xbox_gears",
-            name: "Gears 5",
-            hoursPlayed: 156,
-            platform: "xbox",
-            lastPlayed: "2025-01-22T19:45:00Z",
-          },
-        ],
-        qualificationStatus: "qualified",
-        qualificationReason: "1243 total hours exceeds qualification requirements",
-      };
-
-      await storage.setCachedPlatformLookup("xbox", response.player.id, response);
-      return response;
+      throw new Error("OpenXBL API key not configured");
     }
 
     try {
-      // Try different Xbox API endpoints with better error handling
-      let profile: any = null;
-      let profileError: string = "";
-
-      // Try multiple Xbox API endpoints
-      const endpoints = [
-        `https://xboxapi.com/v2/xuid/${gamerTag}`,
-        `https://xboxapi.com/v2/profile`,
-        `https://xboxapi.com/v2/gamertag/${gamerTag}`
-      ];
-
-      for (const endpoint of endpoints) {
-        try {
-          const response = await axios.get(endpoint, {
-            headers: {
-              'X-Authorization': token,
-            },
-            params: endpoint.includes('profile') ? { gt: gamerTag } : {},
-            timeout: 5000
-          });
-          
-          if (response.data) {
-            profile = response.data;
-            break;
-          }
-        } catch (apiError: any) {
-          profileError = `API Error ${apiError.response?.status}: ${apiError.response?.statusText || apiError.message}`;
-          console.warn(`Xbox API endpoint ${endpoint} failed:`, profileError);
-        }
+      // Use RealGamingDataService with OpenXBL integration
+      const { RealGamingDataService } = await import('./services/realGamingDataService');
+      const gamingService = new RealGamingDataService();
+      
+      console.log(`🎮 Using OpenXBL API for Xbox lookup: ${gamerTag}`);
+      const realData = await gamingService.getRealGamingData(gamerTag, 'xbox');
+      
+      if (!realData) {
+        throw new Error(`Xbox profile not found for: ${gamerTag}`);
       }
-
-      // Generate unique Xbox data based on gamer tag for consistency
-      const tagHash = gamerTag.split('').reduce((hash, char) => hash + char.charCodeAt(0), 0);
-      const seededRandom = (seed: number, min: number, max: number) => {
-        const x = Math.sin(seed++) * 10000;
-        return Math.floor((x - Math.floor(x)) * (max - min + 1)) + min;
-      };
-
-      const xboxGameTemplates = [
-        "Halo Infinite", "Forza Horizon 5", "Call of Duty: Modern Warfare III", "FIFA 24",
-        "Gears 5", "Sea of Thieves", "Minecraft", "Rocket League", "Apex Legends", 
-        "Grand Theft Auto V", "Destiny 2", "Cyberpunk 2077", "Diablo IV"
-      ];
-
-      const topGames = xboxGameTemplates.slice(0, 3).map((game, index) => {
-        const gameHours = seededRandom(tagHash + index * 150, 20, 400);
-        return {
-          id: `xbox_${game.replace(/[^a-zA-Z0-9]/g, '_').toLowerCase()}_${gamerTag}`,
-          name: game,
-          hoursPlayed: gameHours,
-          platform: "xbox" as Platform,
-          lastPlayed: new Date(Date.now() - seededRandom(tagHash + index + 50, 1, 25) * 24 * 60 * 60 * 1000).toISOString(),
-        };
-      });
-
-      const totalGames = seededRandom(tagHash, 10, 30);
-      const totalHours = topGames.reduce((sum, game) => sum + game.hoursPlayed, 0) + seededRandom(tagHash + 1000, 200, 800);
-      const avgHoursPerGame = totalGames > 0 ? Math.round((totalHours / totalGames) * 10) / 10 : 0;
-
-      const response: PlatformLookupResponse = {
-        platform: "xbox",
-        player: {
-          id: profile?.xuid || `xbox_${gamerTag.toLowerCase()}`,
-          gamerTag: gamerTag,
-          displayName: profile?.gamertag || gamerTag,
-          avatar: profile?.gamerPicSmallUri || "https://via.placeholder.com/64x64/107c10/ffffff?text=XBX",
-          lastOnline: "Recently active",
-        },
-        totalHours,
-        totalGames,
-        avgHoursPerGame,
-        topGames,
-        qualificationStatus: totalHours > 1100 ? "qualified" : "not_qualified",
-        qualificationReason: profileError 
-          ? `Gaming data for ${gamerTag} (Xbox API: ${profileError})` 
-          : `${totalHours} total hours from ${totalGames} games`,
-      };
-
-      await storage.setCachedPlatformLookup("xbox", response.player.id, response);
-      return response;
-    } catch (error) {
-      // Fallback with unique Xbox gaming data per gamer tag
-      const tagHash = gamerTag.split('').reduce((hash, char) => hash + char.charCodeAt(0), 0);
-      const seededRandom = (seed: number, min: number, max: number) => {
-        const x = Math.sin(seed++) * 10000;
-        return Math.floor((x - Math.floor(x)) * (max - min + 1)) + min;
-      };
-
-      const fallbackGames = [
-        "Halo Infinite", "Gears 5", "Forza Horizon 5", "Sea of Thieves", "Minecraft"
-      ];
-
-      const topGames = fallbackGames.slice(0, 3).map((game, index) => {
-        const gameHours = seededRandom(tagHash + index * 200, 25, 350);
-        return {
-          id: `xbox_${game.replace(/[^a-zA-Z0-9]/g, '_').toLowerCase()}_${gamerTag}`,
-          name: game,
-          hoursPlayed: gameHours,
-          platform: "xbox" as Platform,
-          lastPlayed: new Date(Date.now() - seededRandom(tagHash + index + 100, 1, 20) * 24 * 60 * 60 * 1000).toISOString(),
-        };
-      });
-
-      const totalGames = seededRandom(tagHash, 12, 28);
-      const totalHours = topGames.reduce((sum, game) => sum + game.hoursPlayed, 0) + seededRandom(tagHash + 2000, 300, 700);
 
       const response: PlatformLookupResponse = {
         platform: "xbox",
         player: {
           id: `xbox_${gamerTag.toLowerCase()}`,
-          gamerTag: gamerTag,
-          displayName: gamerTag,
-          avatar: "https://via.placeholder.com/64x64/107c10/ffffff?text=XBX",
+          gamerTag: realData.gamerTag,
+          displayName: realData.displayName,
+          avatar: realData.avatar || "https://via.placeholder.com/64x64/107c10/ffffff?text=XBX",
           lastOnline: "Recently active",
+          gamerscore: realData.gamerscore
         },
-        totalHours,
-        totalGames,
-        avgHoursPerGame: Math.round((totalHours / totalGames) * 10) / 10,
-        topGames,
-        qualificationStatus: totalHours > 1100 ? "qualified" : "not_qualified",
-        qualificationReason: `Gaming data for ${gamerTag} (${totalHours} hours from ${totalGames} games)`,
+        totalHours: realData.totalHours,
+        totalGames: realData.totalGames,
+        avgHoursPerGame: realData.totalGames > 0 ? 
+          Math.round((realData.totalHours / realData.totalGames) * 10) / 10 : 0,
+        topGames: realData.games.map(game => ({
+          id: `xbox_${game.name.replace(/[^a-zA-Z0-9]/g, '_').toLowerCase()}_${gamerTag}`,
+          name: game.name,
+          hoursPlayed: game.hoursPlayed,
+          platform: "xbox" as Platform,
+          lastPlayed: game.lastPlayed,
+        })),
+        qualificationStatus: realData.totalHours > 0 ? "qualified" : "not_qualified",
+        qualificationReason: realData.dataSource.includes('$5 plan') 
+          ? `${realData.dataSource} - Gamerscore: ${realData.gamerscore}`
+          : `Real Xbox data: ${realData.totalHours} hours, Gamerscore: ${realData.gamerscore}`,
+        realData: true
       };
 
+      // Cache the authentic data
       await storage.setCachedPlatformLookup("xbox", response.player.id, response);
+      console.log(`✅ Real Xbox data cached for ${gamerTag}: ${realData.gamerscore} gamerscore`);
+      
       return response;
+
+    } catch (error: any) {
+      console.error('OpenXBL lookup error:', error);
+      throw new Error(error.message || 'Xbox lookup failed');
     }
   }
 

@@ -1,5 +1,5 @@
 // Test OpenXBL API access levels with current $5 subscription
-const API_KEY = '3962ca99d7c849b99b6a25a4c88e1e0e';
+const API_KEY = process.env.OPENXBL_API_KEY;
 const XUID = '2535454283693482'; // Wonder Bread326's XUID
 
 async function testEndpoint(url, description) {
