@@ -196,27 +196,58 @@ export class RealGamingDataService {
       
       try {
         console.log(`🎮 Attempting to fetch games for ${player.gamertag}...`);
-        const gamesResponse = await axios.get(`https://xbl.io/api/v2/games/${encodeURIComponent(player.gamertag)}`, {
-          headers: {
-            'X-Authorization': API_KEY,
-            'Accept': 'application/json'
-          },
-          timeout: 10000
-        });
+        console.log(`🔑 Using API key (first 8 chars): ${API_KEY.substring(0, 8)}...`);
+        
+        // Try multiple endpoints to find games data
+        const endpoints = [
+          `/api/v2/player/${player.xuid}/titles`,
+          `/api/v2/games/${encodeURIComponent(player.gamertag)}`,
+          `/api/v2/account/${player.xuid}/games`,
+          `/api/v2/recent-games/${player.xuid}`
+        ];
 
-        if (gamesResponse.data?.games) {
-          gamesData = gamesResponse.data.games.slice(0, 10).map((game: any) => ({
-            name: game.name,
-            hoursPlayed: Math.round((game.playTime || 0) / 60) || 0,
-            achievements: game.currentAchievements || 0,
-            completionPercentage: Math.round((game.currentAchievements / Math.max(game.maxAchievements, 1)) * 100) || 0,
-            lastPlayed: game.lastUnlock || new Date().toISOString()
-          }));
-          totalHours = gamesData.reduce((sum: number, game: any) => sum + game.hoursPlayed, 0);
-          console.log(`✅ Retrieved ${gamesData.length} games with ${totalHours} total hours`);
+        for (const endpoint of endpoints) {
+          try {
+            console.log(`🎯 Trying endpoint: ${endpoint}`);
+            const gamesResponse = await axios.get(`https://xbl.io${endpoint}`, {
+              headers: {
+                'X-Authorization': API_KEY,
+                'Accept': 'application/json'
+              },
+              timeout: 10000
+            });
+
+            console.log(`📊 Response status: ${gamesResponse.status}`);
+            console.log(`📊 Response headers rate limit: ${gamesResponse.headers['x-ratelimit-remaining']}`);
+            
+            if (gamesResponse.data) {
+              console.log(`📊 Response data keys:`, Object.keys(gamesResponse.data));
+              
+              // Check for games in various response formats
+              const games = gamesResponse.data.games || gamesResponse.data.titles || gamesResponse.data;
+              if (Array.isArray(games) && games.length > 0) {
+                gamesData = games.slice(0, 10).map((game: any) => ({
+                  name: game.name || game.title || game.titleName,
+                  hoursPlayed: Math.round((game.playTime || game.playtime || 0) / 60) || 0,
+                  achievements: game.currentAchievements || game.achievements || 0,
+                  completionPercentage: game.completion || Math.round((game.currentAchievements / Math.max(game.maxAchievements, 1)) * 100) || 0,
+                  lastPlayed: game.lastUnlock || game.lastPlayed || new Date().toISOString()
+                }));
+                totalHours = gamesData.reduce((sum: number, game: any) => sum + game.hoursPlayed, 0);
+                console.log(`✅ Retrieved ${gamesData.length} games with ${totalHours} total hours from ${endpoint}`);
+                break;
+              }
+            }
+          } catch (endpointError: any) {
+            console.log(`❌ Endpoint ${endpoint} failed: ${endpointError.response?.status} - ${endpointError.message}`);
+          }
+        }
+
+        if (gamesData.length === 0) {
+          console.log(`⚠️ No games data found - checking if your $5 subscription covers games endpoints`);
         }
       } catch (gamesError: any) {
-        console.log(`⚠️ Games data not available on free tier - upgrade to OpenXBL paid plan for full games data`);
+        console.log(`❌ Games data fetch failed: ${gamesError.response?.status} - ${gamesError.message}`);
       }
 
       // Return authentic Xbox data (profile + games if available)
