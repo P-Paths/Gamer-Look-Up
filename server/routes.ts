@@ -22,6 +22,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
     console.error('❌ Failed to initialize gaming service:', error);
   }
 
+  // Steam data service
+  let steamService: any = null;
+  try {
+    const { SteamService } = await import('./services/steamService');
+    steamService = new SteamService();
+    console.log('✅ Steam service initialized');
+  } catch (error) {
+    console.error('❌ Failed to initialize Steam service:', error);
+  }
+
   // Multi-platform lookup endpoint
   app.post("/api/platform/lookup", async (req, res) => {
     try {

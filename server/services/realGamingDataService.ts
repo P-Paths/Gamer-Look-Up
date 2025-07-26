@@ -132,36 +132,44 @@ export class RealGamingDataService {
   }
 
   /**
-   * OpenXBL API method (official-ish Xbox Live API)
+   * OpenXBL API method - Real Xbox Live data only
    */
   private async getOpenXBLData(gamerTag: string): Promise<RealGamingProfile | null> {
     const API_KEY = process.env.OPENXBL_API_KEY;
-    if (!API_KEY) return null;
+    if (!API_KEY) {
+      console.log('⚠️ OpenXBL API key not configured');
+      return null;
+    }
 
     try {
+      console.log(`🎮 Fetching real Xbox data from OpenXBL API for: ${gamerTag}`);
+
       // Get player profile
       const profileResponse = await axios.get(`https://xbl.io/api/v2/friends/search?gt=${encodeURIComponent(gamerTag)}`, {
         headers: {
           'X-Authorization': API_KEY,
           'Accept': 'application/json'
-        }
+        },
+        timeout: 15000
       });
 
       if (!profileResponse.data?.people?.[0]) {
+        console.log(`❌ Xbox profile not found for: ${gamerTag}`);
         return null;
       }
 
       const player = profileResponse.data.people[0];
+      console.log(`✅ Found Xbox profile: ${player.displayName || player.gamertag}`);
 
-      // Get achievements
-      const achievementsResponse = await axios.get(`https://xbl.io/api/v2/achievements/player/${player.xuid}`, {
+      // Get current presence/activity
+      const presenceResponse = await axios.get(`https://xbl.io/api/v2/player/${player.xuid}/presence`, {
         headers: {
           'X-Authorization': API_KEY,
           'Accept': 'application/json'
         }
-      });
+      }).catch(() => null);
 
-      // Get recent games
+      // Get recent games with playtime data
       const gamesResponse = await axios.get(`https://xbl.io/api/v2/player/${player.xuid}/games`, {
         headers: {
           'X-Authorization': API_KEY,
@@ -169,36 +177,43 @@ export class RealGamingDataService {
         }
       });
 
-      const games = gamesResponse.data?.titles?.map((game: any) => ({
-        name: game.name,
-        hoursPlayed: Math.round((game.stats?.find((s: any) => s.name === 'MinutesPlayed')?.value || 0) / 60),
-        achievements: game.achievement?.currentAchievements || 0,
-        completionPercentage: Math.round((game.achievement?.currentAchievements / Math.max(game.achievement?.totalAchievements, 1)) * 100),
-        lastPlayed: game.lastTimePlayed || new Date().toISOString()
-      })) || [];
+      const gamesData = gamesResponse.data?.titles || [];
+      console.log(`✅ Retrieved ${gamesData.length} games for ${gamerTag}`);
 
-      const totalHours = games.reduce((sum: number, game: any) => sum + (game.hoursPlayed || 0), 0);
+      // Process games to get ONLY the data requested: hours, play times, last activity
+      const games = gamesData.map((game: any) => {
+        // Extract playtime in hours (convert from minutes)
+        const minutesPlayed = game.stats?.find((s: any) => s.name === 'MinutesPlayed')?.value || 0;
+        const hoursPlayed = Math.round(minutesPlayed / 60);
+        
+        return {
+          name: game.name,
+          hoursPlayed, // Real hours from Xbox Live
+          lastPlayed: game.lastTimePlayed ? new Date(game.lastTimePlayed).toISOString() : null, // Real last played time
+          isCurrentlyPlaying: presenceResponse?.data?.state === 'Online' && presenceResponse?.data?.primaryTitle === game.name
+        };
+      }).filter(game => game.hoursPlayed > 0) // Only show games actually played
+        .sort((a, b) => new Date(b.lastPlayed || 0).getTime() - new Date(a.lastPlayed || 0).getTime()); // Sort by most recent
+
+      const totalHours = games.reduce((sum, game) => sum + game.hoursPlayed, 0);
 
       return {
         platform: 'xbox',
         gamerTag: player.gamertag,
         displayName: player.displayName || player.gamertag,
-        gamerscore: player.gamerScore || 0,
         totalGames: games.length,
         totalHours,
         games,
-        achievements: {
-          total: achievementsResponse.data?.totalAchievements || 0,
-          unlocked: achievementsResponse.data?.currentAchievements || 0,
-          gamerscore: player.gamerScore || 0
-        },
+        lastOnline: presenceResponse?.data?.lastSeen ? new Date(presenceResponse.data.lastSeen).toISOString() : null,
+        currentActivity: presenceResponse?.data?.state === 'Online' ? presenceResponse.data.primaryTitle : null,
+        isOnline: presenceResponse?.data?.state === 'Online',
         avatar: player.displayPicRaw,
-        dataSource: 'openxbl_api',
+        dataSource: 'openxbl_api_real',
         lastUpdated: new Date().toISOString()
       };
 
-    } catch (error) {
-      console.error('OpenXBL API error:', error);
+    } catch (error: any) {
+      console.error(`❌ OpenXBL API failed for ${gamerTag}:`, error.response?.status, error.message);
       return null;
     }
   }
@@ -218,60 +233,9 @@ export class RealGamingDataService {
       // - Captcha solving
       // - Rate limiting compliance
       
-      const demoProfiles: Record<string, any> = {
-        'MajorNelson': {
-          displayName: 'Larry Hryb',
-          gamerscore: 146832,
-          games: [
-            { name: 'Halo Infinite', hoursPlayed: 127, achievements: 73, completionPercentage: 89 },
-            { name: 'Forza Horizon 5', hoursPlayed: 89, achievements: 45, completionPercentage: 67 },
-            { name: 'Microsoft Flight Simulator', hoursPlayed: 156, achievements: 28, completionPercentage: 34 },
-            { name: 'Gears 5', hoursPlayed: 67, achievements: 52, completionPercentage: 78 },
-            { name: 'Sea of Thieves', hoursPlayed: 234, achievements: 91, completionPercentage: 85 }
-          ]
-        },
-        'TheGameAwards': {
-          displayName: 'The Game Awards',
-          gamerscore: 89542,
-          games: [
-            { name: 'Baldurs Gate 3', hoursPlayed: 145, achievements: 67, completionPercentage: 82 },
-            { name: 'Starfield', hoursPlayed: 98, achievements: 43, completionPercentage: 56 },
-            { name: 'Hi-Fi Rush', hoursPlayed: 23, achievements: 31, completionPercentage: 94 },
-            { name: 'Lies of P', hoursPlayed: 78, achievements: 38, completionPercentage: 71 }
-          ]
-        }
-      };
-
-      // Only use real authenticated profiles - no fake data
-      const profile = demoProfiles[gamerTag];
-      if (!profile) {
-        console.log(`❌ No authenticated data available for ${gamerTag}`);
-        return null;
-      }
-
-      const totalHours = profile.games.reduce((sum: number, game: any) => sum + game.hoursPlayed, 0);
-      const totalAchievements = profile.games.reduce((sum: number, game: any) => sum + game.achievements, 0);
-
-      return {
-        platform: 'xbox',
-        gamerTag,
-        displayName: profile.displayName,
-        gamerscore: profile.gamerscore,
-        totalGames: profile.games.length,
-        totalHours,
-        games: profile.games.map((game: any) => ({
-          ...game,
-          lastPlayed: new Date(Date.now() - Math.random() * 30 * 24 * 60 * 60 * 1000).toISOString()
-        })),
-        achievements: {
-          total: Math.round(totalAchievements * 1.3), // Estimated total available
-          unlocked: totalAchievements,
-          gamerscore: profile.gamerscore
-        },
-        avatar: `https://avatar-ssl.xboxlive.com/avatar/${gamerTag}/avatarpic-l.png`,
-        dataSource: 'trueachievements_demo_data',
-        lastUpdated: new Date().toISOString()
-      };
+      // NO FAKE DATA - scraping is blocked by 403 errors
+      console.log(`❌ TrueAchievements scraping blocked for ${gamerTag} - no fake data returned`);
+      return null;
 
     } catch (error) {
       console.error(`❌ TrueAchievements failed for ${gamerTag}:`, error);
@@ -358,62 +322,9 @@ export class RealGamingDataService {
       // - Session management
       // - Rate limiting compliance
       
-      const demoProfiles: Record<string, any> = {
-        'lazaruz_729': {
-          displayName: 'Lazaruz',
-          trophyLevel: 87,
-          trophies: { platinum: 23, gold: 156, silver: 432, bronze: 1247 },
-          games: [
-            { name: 'Spider-Man 2', hoursPlayed: 67, trophies: 45, completionPercentage: 89 },
-            { name: 'God of War Ragnarök', hoursPlayed: 134, trophies: 67, completionPercentage: 95 },
-            { name: 'Horizon Forbidden West', hoursPlayed: 89, trophies: 52, completionPercentage: 78 },
-            { name: 'The Last of Us Part II', hoursPlayed: 156, trophies: 89, completionPercentage: 100 },
-            { name: 'Ghost of Tsushima', hoursPlayed: 98, trophies: 71, completionPercentage: 87 }
-          ]
-        },
-        'PlayStation': {
-          displayName: 'PlayStation',
-          trophyLevel: 156,
-          trophies: { platinum: 89, gold: 567, silver: 1234, bronze: 3456 },
-          games: [
-            { name: 'Astros Playroom', hoursPlayed: 12, trophies: 46, completionPercentage: 100 },
-            { name: 'Demons Souls', hoursPlayed: 87, trophies: 37, completionPercentage: 89 },
-            { name: 'Ratchet & Clank: Rift Apart', hoursPlayed: 45, trophies: 47, completionPercentage: 94 },
-            { name: 'Returnal', hoursPlayed: 123, trophies: 31, completionPercentage: 67 }
-          ]
-        }
-      };
-
-      // Only use real authenticated profiles - no fake data
-      const profile = demoProfiles[gamerTag];
-      if (!profile) {
-        console.log(`❌ No authenticated data available for ${gamerTag}`);
-        return null;
-      }
-
-      const totalHours = profile.games.reduce((sum: number, game: any) => sum + game.hoursPlayed, 0);
-      const totalTrophies = profile.trophies.platinum + profile.trophies.gold + profile.trophies.silver + profile.trophies.bronze;
-
-      return {
-        platform: 'playstation',
-        gamerTag,
-        displayName: profile.displayName,
-        trophyLevel: profile.trophyLevel,
-        totalTrophies,
-        totalGames: profile.games.length,
-        totalHours,
-        games: profile.games.map((game: any) => ({
-          ...game,
-          lastPlayed: new Date(Date.now() - Math.random() * 60 * 24 * 60 * 60 * 1000).toISOString()
-        })),
-        trophies: {
-          ...profile.trophies,
-          total: totalTrophies
-        },
-        avatar: `https://secure.gravatar.com/avatar/${Buffer.from(gamerTag).toString('hex')}?s=200&d=mp`,
-        dataSource: 'psnprofiles_demo_data',
-        lastUpdated: new Date().toISOString()
-      };
+      // NO FAKE DATA - scraping is blocked by 403 errors  
+      console.log(`❌ PSNProfiles scraping blocked for ${gamerTag} - no fake data returned`);
+      return null;
 
     } catch (error) {
       console.error(`❌ PSNProfiles failed for ${gamerTag}:`, error);
