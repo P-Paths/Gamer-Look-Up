@@ -243,10 +243,13 @@ export class PlayStationService implements PlatformService {
     }
 
     try {
-      // Use the existing PSN API integration (more reliable than browser scraping)
+      // Use the existing PSN API integration (browser scraping fallback disabled for production)
       console.log(`🎮 Using PSN API for PlayStation profile: ${gamerTag || 'current user'}`);
-      const { getCompletePSNData } = await import('./psn/index');
-      const psnData = await getCompletePSNData(npsso);
+      
+      // Try the PSN API first
+      try {
+        const { getCompletePSNData } = await import('./psn/index');
+        const psnData = await getCompletePSNData(npsso);
       
       if (psnData.success) {
         // Convert to our standard platform response format
@@ -283,6 +286,13 @@ export class PlayStationService implements PlatformService {
         return response;
       } else {
         throw new Error(psnData.error || 'Failed to fetch PlayStation data');
+      }
+      
+      } catch (apiError: any) {
+        console.log(`PSN API failed: ${apiError.message}`);
+        
+        // Return a proper error response instead of falling back to browser scraping
+        throw new Error(`PlayStation API unavailable: ${apiError.message}. Please ensure your PSN_NPSSO_TOKEN is valid and current.`);
       }
       
     } catch (error) {
