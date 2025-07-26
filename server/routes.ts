@@ -1,4 +1,5 @@
 import type { Express } from "express";
+import friendsRoutes from "./routes/friends";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { steamLookupRequestSchema, type SteamLookupResponse, platformLookupRequestSchema, type PlatformLookupResponse, authCallbackSchema, type Platform } from "@shared/schema";
