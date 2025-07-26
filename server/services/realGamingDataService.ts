@@ -97,35 +97,60 @@ export class RealGamingDataService {
   private async getPlayStationData(gamerTag: string): Promise<RealGamingProfile | null> {
     console.log(`🎯 Getting authentic PlayStation data for: ${gamerTag}`);
 
-    // Use your existing PSN service that's already built
+    // Use your existing PSN service with NPSSO token
+    if (!process.env.PSN_NPSSO_TOKEN) {
+      console.log('❌ PSN_NPSSO_TOKEN not configured - cannot get authentic PlayStation data');
+      return null;
+    }
+
     try {
-      const psnService = await import('../psn/index');
-      const psnData = await psnService.getProfile(gamerTag);
+      // Import your existing complete PSN system
+      const { getCompletePSNData } = await import('../psn/index');
       
-      if (psnData) {
-        // Convert PSN data to our standard format
-        return {
-          platform: 'playstation',
-          gamerTag: gamerTag,
-          displayName: psnData.displayName || gamerTag,
-          trophyLevel: psnData.trophyLevel,
-          totalTrophies: psnData.totalTrophies,
-          totalGames: psnData.games?.length || 0,
-          totalHours: psnData.games?.reduce((sum: number, game: any) => sum + (game.hoursPlayed || 0), 0) || 0,
-          games: psnData.games?.map((game: any) => ({
-            name: game.name,
-            hoursPlayed: game.hoursPlayed || 0,
-            completionPercentage: game.completionPercentage || 0,
-            lastPlayed: game.lastPlayed || new Date().toISOString()
-          })) || [],
-          trophies: psnData.trophies,
-          avatar: psnData.avatar,
-          dataSource: 'psn_api_real',
-          lastUpdated: new Date().toISOString()
-        };
+      console.log(`🎮 Fetching real PlayStation data using NPSSO token...`);
+      
+      // Use your complete PSN system with NPSSO token
+      const psnData = await getCompletePSNData(process.env.PSN_NPSSO_TOKEN);
+      
+      if (!psnData.success) {
+        console.log(`❌ PlayStation data collection failed: ${psnData.error}`);
+        return null;
       }
+      
+      console.log(`✅ Retrieved PlayStation data for ${psnData.profile.onlineId}`);
+      
+      // Format games data for our interface
+      const games = psnData.gaming.topGames.map((game: any) => ({
+        name: game.name,
+        hoursPlayed: game.hours,
+        completionPercentage: game.progress,
+        lastPlayed: game.lastPlayed
+      }));
+      
+      return {
+        platform: 'playstation',
+        gamerTag: psnData.profile.onlineId,
+        displayName: psnData.profile.onlineId,
+        trophyLevel: psnData.trophies.level,
+        totalTrophies: psnData.trophies.totalTrophies,
+        totalGames: psnData.gaming.totalGames,
+        totalHours: psnData.gaming.totalHours,
+        games,
+        trophies: {
+          platinum: psnData.trophies.platinum,
+          gold: psnData.trophies.gold,
+          silver: psnData.trophies.silver,
+          bronze: psnData.trophies.bronze,
+          total: psnData.trophies.totalTrophies
+        },
+        avatar: psnData.profile.avatar,
+        dataSource: 'psn_npsso_real',
+        lastUpdated: new Date().toISOString()
+      };
+      
     } catch (error) {
-      console.log('❌ PSN service failed:', error);
+      console.error('❌ PSN service error:', error);
+      return null;
     }
 
     console.log('❌ PlayStation data not available');
