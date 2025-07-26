@@ -14,7 +14,13 @@ This is a full-stack multi-platform gaming lookup web application that allows us
 - New `/premium-xbox` dashboard showing authentic gaming statistics
 - Full integration with main platform lookup system
 - Gamerscore tracking and games library from premium OpenXBL API
-- Ready for GitHub dashboard integration with real Xbox data
+
+**❌ Xbox Playtime Hours Limitation Discovered:**
+- OpenXBL premium ($30) provides real achievement data but NOT actual playtime hours
+- Xbox Live APIs do not expose actual gaming session durations or playtime data
+- XAPI.us integration attempted but blocked by Cloudflare (403 errors)
+- Current solution: Show 0 hours instead of fake estimates to maintain data integrity
+- Real data available: Game library, achievements, gamerscore, completion percentages
 
 **✅ Complete PlayStation Real Data Integration:**
 - Built comprehensive Puppeteer-based PlayStation service with 8 TypeScript modules

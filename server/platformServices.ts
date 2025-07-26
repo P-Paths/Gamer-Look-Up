@@ -45,10 +45,50 @@ export class SteamService implements PlatformService {
       );
 
       if (vanityResponse.data.response.success !== 1) {
-        throw new Error("Steam profile not found. Please check the gamer tag and try again.");
+        // Try different search approaches for complex usernames
+        console.log(`❌ Vanity URL failed for "${gamerTag}", trying alternative searches...`);
+        
+        // Try common username variations
+        const variations = [
+          gamerTag.replace(/\s+/g, ''),     // Remove spaces: "Mr. F C X" -> "Mr.FCX"
+          gamerTag.replace(/\s+/g, '-'),    // Replace spaces with dashes: "Mr. F C X" -> "Mr.-F-C-X"
+          gamerTag.replace(/\s+/g, '_'),    // Replace spaces with underscores: "Mr. F C X" -> "Mr._F_C_X"
+          gamerTag.toLowerCase().replace(/\s+/g, ''), // Lowercase no spaces
+          gamerTag.toLowerCase().replace(/\s+/g, '-'), // Lowercase with dashes
+        ];
+        
+        for (const variation of variations) {
+          try {
+            console.log(`🔍 Trying variation: "${variation}"`);
+            const variationResponse = await axios.get(
+              `https://api.steampowered.com/ISteamUser/ResolveVanityURL/v0001/`,
+              {
+                params: {
+                  key: this.apiKey,
+                  vanityurl: variation,
+                },
+              }
+            );
+            
+            if (variationResponse.data.response.success === 1) {
+              console.log(`✅ Found Steam profile with variation: "${variation}"`);
+              steamId = variationResponse.data.response.steamid;
+              break;
+            }
+          } catch (variationError) {
+            console.log(`❌ Variation "${variation}" failed`);
+          }
+        }
+        
+        // If still no success, throw error
+        if (!/^765\d{14}$/.test(steamId)) {
+          throw new Error(`Steam profile not found for "${gamerTag}". Tried multiple variations. Please check the gamer tag or ensure the profile is public.`);
+        }
       }
 
-      steamId = vanityResponse.data.response.steamid;
+      if (vanityResponse.data.response.success === 1) {
+        steamId = vanityResponse.data.response.steamid;
+      }
     }
 
     // Check cache first
@@ -337,7 +377,26 @@ export class XboxService implements PlatformService {
       
       console.log(`✅ Found Xbox profile: ${playerData.gamertag} (Score: ${gamerscore})`);
 
-      // Get premium gaming data from achievements endpoint
+      // Try XAPI.us first for real playtime data
+      const xapiToken = process.env.XAPI_TOKEN;
+      if (xapiToken) {
+        console.log(`🎮 Using XAPI.us for real Xbox playtime data: ${gamerTag}`);
+        try {
+          const { XAPIService } = await import('./services/xapiService');
+          const xapiService = new XAPIService();
+          const xapiResult = await xapiService.lookupPlayer(gamerTag);
+          console.log(`✅ XAPI success: ${xapiResult.totalGames} games, ${xapiResult.totalHours} real hours`);
+          
+          // Cache and return XAPI result
+          await storage.setCachedPlatformLookup("xbox", xuid, xapiResult);
+          return xapiResult;
+        } catch (xapiError: any) {
+          console.log(`❌ XAPI failed, falling back to OpenXBL: ${xapiError.message}`);
+        }
+      }
+
+      // Fallback to OpenXBL for achievement data (no real hours)
+      console.log(`🎮 Using OpenXBL fallback for Xbox lookup: ${gamerTag}`);
       let games: any[] = [];
       let totalHours = 0;
       
@@ -353,7 +412,7 @@ export class XboxService implements PlatformService {
 
         if (gamingResponse.data?.titles && Array.isArray(gamingResponse.data.titles)) {
           const titles = gamingResponse.data.titles;
-          console.log(`🎮 Premium Xbox: Retrieved ${titles.length} games from achievements API`);
+          console.log(`🎮 OpenXBL: Retrieved ${titles.length} games from achievements API (no real hours)`);
           
           // Show only authentic Xbox data - no estimated hours
           games = titles.slice(0, 10).map((title: any, index: number) => {
@@ -364,9 +423,9 @@ export class XboxService implements PlatformService {
             return {
               id: title.titleId || `xbox_${index}`,
               name: title.name || 'Unknown Game',
-              hoursPlayed: 0, // Xbox doesn't provide real hours - show 0 instead of fake estimates
+              hoursPlayed: 0, // OpenXBL doesn't provide real hours
               platform: 'xbox' as Platform,
-              lastPlayed: title.lastUnlock || 'Xbox does not provide playtime data',
+              lastPlayed: title.lastUnlock || 'Xbox does not provide playtime data via OpenXBL',
               // Additional authentic data
               gamerscore: currentScore,
               maxGamerscore: title.maxGamerscore || null,
@@ -376,11 +435,11 @@ export class XboxService implements PlatformService {
             };
           });
           
-          totalHours = 0; // Don't show fake hours
-          console.log(`📊 Xbox gaming stats: ${games.length} games, ${totalHours} estimated hours`);
+          totalHours = 0; // OpenXBL doesn't provide real hours
+          console.log(`📊 OpenXBL gaming stats: ${games.length} games, ${totalHours} hours (no real playtime data)`);
         }
       } catch (gamingError: any) {
-        console.log(`⚠️ Premium gaming data not available: ${gamingError.message}`);
+        console.log(`⚠️ OpenXBL gaming data not available: ${gamingError.message}`);
         console.log('Using profile data only');
       }
 
