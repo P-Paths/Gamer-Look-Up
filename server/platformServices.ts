@@ -243,21 +243,8 @@ export class PlayStationService implements PlatformService {
     }
 
     try {
-      // Try browser scraping first for most accurate real-time data
-      if (gamerTag && gamerTag !== 'current_user') {
-        console.log(`🎮 Using browser scraping for PlayStation profile: ${gamerTag}`);
-        const { PlayStationScraperService } = await import('./services/playstationScraperService');
-        const scraperService = new PlayStationScraperService();
-        const scrapedResult = await scraperService.scrapePlayerProfile(gamerTag);
-        
-        // Cache and return scraper result
-        await storage.setCachedPlatformLookup("playstation", cacheKey, scrapedResult);
-        console.log(`✅ PlayStation browser scrape complete: ${scrapedResult.totalGames} games, ${scrapedResult.totalHours} real hours`);
-        return scrapedResult;
-      }
-      
-      // Fallback to API integration for current user
-      console.log(`🎮 Using PSN API for current user profile`);
+      // Use the existing PSN API integration (more reliable than browser scraping)
+      console.log(`🎮 Using PSN API for PlayStation profile: ${gamerTag || 'current user'}`);
       const { getCompletePSNData } = await import('./psn/index');
       const psnData = await getCompletePSNData(npsso);
       
