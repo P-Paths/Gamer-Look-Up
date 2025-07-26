@@ -1,6 +1,7 @@
 import type { Express } from "express";
 import friendsRoutes from "./routes/friends";
 import playerStatsRoutes from "./routes/playerStats";
+import xboxActivityRoutes from "./routes/xboxActivity";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { steamLookupRequestSchema, type SteamLookupResponse, platformLookupRequestSchema, type PlatformLookupResponse, authCallbackSchema, type Platform } from "@shared/schema";
@@ -8,9 +9,10 @@ import { getPlatformService } from "./platformServices";
 import axios from "axios";
 
 export async function registerRoutes(app: Express): Promise<Server> {
-  // Register friends and stats routes
+  // Register friends, stats, and Xbox activity routes
   app.use(friendsRoutes);
   app.use(playerStatsRoutes);
+  app.use(xboxActivityRoutes);
   const STEAM_API_KEY = process.env.STEAM_API_KEY || process.env.STEAM_WEB_API_KEY || "";
   
   if (!STEAM_API_KEY) {

@@ -4,8 +4,9 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, GamepadIcon, Clock, Calendar } from "lucide-react";
+import { Loader2, GamepadIcon, Clock, Calendar, Activity, Users } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
+import { Link } from "wouter";
 
 interface GameData {
   name: string;
@@ -96,11 +97,27 @@ export default function SimpleGamingLookup() {
 
   return (
     <div className="max-w-4xl mx-auto p-6 space-y-6">
-      <div className="text-center space-y-2">
+      <div className="text-center space-y-4">
         <h1 className="text-3xl font-bold">Real Gaming Data Lookup</h1>
         <p className="text-muted-foreground">
           Get authentic gaming statistics: hours played, last activity, and current games
         </p>
+        
+        {/* Quick Xbox Navigation */}
+        <div className="flex justify-center gap-2">
+          <Link href="/xbox-activity">
+            <Button variant="outline" size="sm" className="gap-2">
+              <Activity className="h-4 w-4" />
+              Xbox Activity
+            </Button>
+          </Link>
+          <Link href="/xbox-friends">
+            <Button variant="outline" size="sm" className="gap-2">
+              <Users className="h-4 w-4" />
+              Xbox Friends
+            </Button>
+          </Link>
+        </div>
       </div>
 
       <Card>

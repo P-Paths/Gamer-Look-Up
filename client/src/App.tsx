@@ -11,6 +11,7 @@ import RealGamingTestPage from "@/pages/real-gaming-test";
 import SimpleGamingLookup from "@/pages/simple-gaming-lookup";
 import XboxFriends from "@/pages/xbox-friends";
 import XboxStats from "@/pages/xbox-stats";
+import XboxActivity from "@/pages/xbox-activity";
 import InternalPage from "@/pages/internal";
 import NotFound from "@/pages/not-found";
 
@@ -25,6 +26,7 @@ function Router() {
       <Route path="/gaming-lookup" component={SimpleGamingLookup} />
       <Route path="/xbox-friends" component={XboxFriends} />
       <Route path="/xbox-stats" component={XboxStats} />
+      <Route path="/xbox-activity" component={XboxActivity} />
       <Route path="/internal" component={InternalPage} />
       <Route component={NotFound} />
     </Switch>
