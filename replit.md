@@ -51,6 +51,12 @@ This is a full-stack multi-platform gaming lookup web application that allows us
 - Created dedicated PSN Dashboard at `/psn-dashboard` route
 - Real-time token monitoring with automatic expiry detection
 
+**Token Expiration Information:**
+- NPSSO tokens expire in 24-48 hours (Sony security feature)
+- Current token expired as expected - needs 5-minute refresh process
+- Complete token refresh guide created in PLAYSTATION_TOKEN_GUIDE.md
+- PlayStation integration ready immediately after token refresh
+
 **PlayStation Service Architecture:**
 - `server/psn/getNpSSO.ts` - Puppeteer NPSSO extraction
 - `server/psn/auth.ts` - NPSSO → access token exchange  
