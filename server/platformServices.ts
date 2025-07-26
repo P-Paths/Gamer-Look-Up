@@ -355,20 +355,28 @@ export class XboxService implements PlatformService {
           const titles = gamingResponse.data.titles;
           console.log(`🎮 Premium Xbox: Retrieved ${titles.length} games from achievements API`);
           
-          // Use the enhanced Xbox gaming service for proper hours calculation
-          const { XboxGamingService } = await import('./services/xboxGamingService');
-          const gamingService = new XboxGamingService();
-          const gamingData = await gamingService.parseAchievementGamingData(gamingResponse.data, xuid);
+          // Show only authentic Xbox data - no estimated hours
+          games = titles.slice(0, 10).map((title: any, index: number) => {
+            const currentScore = title.currentGamerscore || 0;
+            const achievementCount = title.achievements?.length || 0;
+            const unlockedAchievements = title.achievements?.filter((a: any) => a.progressState === 'Unlocked').length || 0;
+            
+            return {
+              id: title.titleId || `xbox_${index}`,
+              name: title.name || 'Unknown Game',
+              hoursPlayed: 0, // Xbox doesn't provide real hours - show 0 instead of fake estimates
+              platform: 'xbox' as Platform,
+              lastPlayed: title.lastUnlock || 'Xbox does not provide playtime data',
+              // Additional authentic data
+              gamerscore: currentScore,
+              maxGamerscore: title.maxGamerscore || null,
+              achievementsUnlocked: unlockedAchievements,
+              totalAchievements: achievementCount,
+              percentComplete: title.maxGamerscore > 0 ? Math.round((currentScore / title.maxGamerscore) * 100) : 0
+            };
+          });
           
-          games = gamingData.games.slice(0, 10).map((game: any) => ({
-            id: game.id,
-            name: game.name,
-            hoursPlayed: game.hoursPlayed,
-            platform: 'xbox' as Platform,
-            lastPlayed: game.lastPlayed !== 'Unknown' ? game.lastPlayed : 'Available in library'
-          }));
-          
-          totalHours = gamingData.player.totalHours;
+          totalHours = 0; // Don't show fake hours
           console.log(`📊 Xbox gaming stats: ${games.length} games, ${totalHours} estimated hours`);
         }
       } catch (gamingError: any) {
