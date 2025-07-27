@@ -98,7 +98,7 @@ export class RealGamingDataService {
     console.log(`🎯 Getting authentic PlayStation data for: ${gamerTag}`);
 
     // Use your existing PSN service with NPSSO token
-    const npssoToken = process.env.PSN_NPSSO_TOKEN || 'c8TI8QRrfnrFYN2Z7xxUxRYHyjo43iH7TsJdkQZzU5FQ1fMmH7CDzYFkTrFx77vL';
+    const npssoToken = process.env.PSN_NPSSO_TOKEN;
     
     if (!npssoToken) {
       console.log('❌ PSN_NPSSO_TOKEN not configured - cannot get authentic PlayStation data');

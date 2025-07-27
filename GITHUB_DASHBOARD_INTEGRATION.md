@@ -39,7 +39,7 @@ Content-Type: application/json
 ```bash
 STEAM_API_KEY=your_steam_key
 OPENXBL_API_KEY=your_xbox_key  
-PSN_NPSSO_TOKEN=c8TI8QRrfnrFYN2Z7xxUxRYHyjo43iH7TsJdkQZzU5FQ1fMmH7CDzYFkTrFx77vL
+PSN_NPSSO_TOKEN=your_64_character_npsso_token_here
 ```
 
 ## API Response Format
